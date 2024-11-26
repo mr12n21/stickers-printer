@@ -74,7 +74,7 @@ def move_to_archive(pdf_path):
     timestamp = os.path.getctime(pdf_path)
     archived_pdf_path = os.path.join(ARCHIVE_DIR, f"{timestamp}_{os.path.basename(pdf_path)}")
     shutil.move(pdf_path, archived_pdf_path)
-    print(f"Soubor {pdf_path} byl přesunut do archivu: {archived_pdf_path}")
+    print(f"file {pdf_path} move to: {archived_pdf_path}")
 
 #folder structure
 class SMBEventHandler(FileSystemEventHandler):
@@ -82,7 +82,7 @@ class SMBEventHandler(FileSystemEventHandler):
         if event.is_directory:
             return
         if event.src_path.endswith('.pdf'):
-            print(f"Nový PDF soubor detekován: {event.src_path}")
+            print(f"find pdf: {event.src_path}")
 
             timestamp = os.path.getctime(event.src_path)
             elements = extract_data_from_pdf(event.src_path)
@@ -91,7 +91,7 @@ class SMBEventHandler(FileSystemEventHandler):
 
             output_pdf_path = event.src_path.replace(".pdf", "_label.pdf")
             create_pdf_for_printer(label_code, current_date, output_pdf_path)
-            print(f"Vytvořen štítek pro tisk: {output_pdf_path}")
+            print(f"new sticker: {output_pdf_path}")
 
             move_to_archive(event.src_path)
 
