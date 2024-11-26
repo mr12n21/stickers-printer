@@ -1,0 +1,5 @@
+pysmb
+lxml
+reportlab
+pycups
+schedule
