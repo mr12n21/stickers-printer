@@ -36,39 +36,39 @@ print_pdf() {
     local pdf_file="$1"
     
     if [ ! -f "$pdf_file" ]; then
-        echo "Soubor $pdf_file neexistuje!"
+        echo "file $pdf_file error"
         return 1
     fi
 
-    echo "Tisknu PDF soubor: $pdf_file"
+    echo "printing pdf: $pdf_file"
     
     lp -d "$TICKET_PRINTER_NAME" "$pdf_file"
     
     if [ $? -eq 0 ]; then
-        echo "Tisk dokončen. Mazání souboru..."
+        echo "print is complet"
         rm "$pdf_file"
-        echo "Soubor byl smazán."
+        echo "file is remove"
     else
-        echo "Chyba při tisku souboru $pdf_file!"
+        echo "error print: $pdf_file!"
         return 1
     fi
 }
 
 cleanup_old_pdfs() {
-    echo "Mazání souborů PDF starších než $PDF_AGE_LIMIT dní..."
+    echo "remove file with expirtation $PDF_AGE_LIMIT"
     find "$PDF_DIR" -type f -name "*.pdf" -mtime +$PDF_AGE_LIMIT -exec rm {} \;
-    echo "Soubory starší než $PDF_AGE_LIMIT dní byly smazány."
+    echo "file is remove $PDF_AGE_LIMIT"
 }
 
 check_and_restart_smb() {
-    echo "Kontroluji dostupnost SMB serveru..."
+    echo "control smb"
     
     if ! smbclient -L //localhost -U "$USER%$PASSWORD" &> /dev/null; then
-        echo "SMB server není dostupný. Restartuji Samba službu..."
+        echo "restart smb service"
         sudo systemctl restart smbd
-        echo "Samba služba byla restartována."
+        echo "complet"
     else
-        echo "SMB server je dostupný."
+        sudo systemctl status smdb
     fi
 }
 
@@ -78,7 +78,7 @@ main() {
     fi    
     check_and_restart_smb
     
-    echo "Procházím PDF soubory v adresáři $PDF_DIR..."
+    echo "look to $PDF_DIR"
     for pdf_file in "$PDF_DIR"/*.pdf; do
         if [ -f "$pdf_file" ]; then
             print_pdf "$pdf_file"
