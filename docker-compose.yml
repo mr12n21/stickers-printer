@@ -1,8 +1,0 @@
-version: '3.9'
-services:
-  app:
-    build: .
-    volumes:
-      - ./smb:/app/smb
-      - ./archive:/app/archive
-    restart: always
