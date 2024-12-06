@@ -1,5 +1,4 @@
-pysmb
-lxml
+Flask
 reportlab
-pycups
-schedule
+brother_ql
+Pillow
