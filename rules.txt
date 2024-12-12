@@ -1,0 +1,3 @@
+"2 people, 18 years old" -> "o2"
+"Electricity, Type X" -> "ELE-12.2"
+"Water, 10 liters" -> "W10"
