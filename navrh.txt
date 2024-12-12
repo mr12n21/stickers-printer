@@ -1,0 +1,12 @@
+sticker-printer/
+├── app.py
+├── rules.txt   #pravidla
+├── services/
+│   ├── label_printer.py    #printer
+│   ├── pdf_processor.py    #pdf
+│   └── rule_loader.py      #nacteni pravidel
+├── smb-share/              #share
+├── archive/                #archiv
+│   ├── pdfs/               #pdf
+│   └── printed/            #tisk
+└── requirements.txt

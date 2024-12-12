@@ -7,7 +7,7 @@ routes = Blueprint('routes', __name__)
 def process_folder():
     try:
         process_smb_folder()
-        return jsonify({"message": "proces je kompletni"}), 200
+        return jsonify({"message": "process complete"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
