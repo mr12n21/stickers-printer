@@ -4,7 +4,7 @@ from PIL import Image
 
 def print_label(code):
     printer = "usb://0x04f9:0x2015/000M6Z401370" #identifikator pro tiskarnu
-    model = "QL-800"
+    model = "QL-1050"
     #typ stitku
     label = "62"
     image_path = f"./archive/printed/{code}.png"
