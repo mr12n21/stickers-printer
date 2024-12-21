@@ -10,6 +10,6 @@ def load_rules(file_path="rules.txt"):
 
 def match_code(data, rules):
     for pattern, code in rules.items():
-        if re.search(pattern, data):  # Use regex for pattern matching
+        if re.search(pattern, data):
             return code
-    return "UNKNOWN"  # Default code if no match is found
+    return "UNKNOWN"
