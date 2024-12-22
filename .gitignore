@@ -1,5 +1,6 @@
-/data-service/testing-data
+/data-service/testing_data
 /bin
 /lib
 /lib64
+/data-service/output_labels
 pyvenv.cfg
