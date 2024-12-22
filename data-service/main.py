@@ -1,6 +1,6 @@
-import pdfplumber
+import pdfplumber # type: ignore
 import yaml
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont # type: ignore
 import os
 
 #nacteni souboru
