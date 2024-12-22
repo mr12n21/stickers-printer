@@ -21,4 +21,8 @@ rules:
     prefix: "H"
   - match: "elektřina"
     prefix: "E"
+  - match: "P8"
+    prefix: "K"
+  - match: "P7"
+    prefix: "K"
 year: 2024
