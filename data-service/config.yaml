@@ -21,8 +21,10 @@ rules:
     prefix: "H"
   - match: "elektřina"
     prefix: "E"
+
+#a p1-p90 predelat na veskera p s cislem
   - match: "P8"
     prefix: "K"
   - match: "P7"
     prefix: "K"
-year: 2024
+year: 2025
