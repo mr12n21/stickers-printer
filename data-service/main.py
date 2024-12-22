@@ -61,7 +61,7 @@ def process_pdfs(pdf_paths, config_path, output_dir):
 
 if __name__ == "__main__":
     pdf_paths = [
-        "./testing-data/testing1.pdf",
+        "./testing-data/testing2.pdf",
     ]
     config_path = "config.yaml"
     output_dir = "output-labels"
