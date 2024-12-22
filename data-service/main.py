@@ -57,13 +57,13 @@ def process_pdfs(pdf_paths, config_path, output_dir):
         output_file = os.path.join(output_dir, f"{invoice_id.replace(' ', '_')}_label.png")
         create_label_png(invoice_id, date_range, prefix, year, output_file)
 
-        print(f"Zpracován soubor {pdf_path}, výstup: {output-file}")
+        print(f"Zpracován soubor {pdf_path}, výstup: {output_file}")
 
 if __name__ == "__main__":
     pdf_paths = [
         "./testing-data/testing1.pdf",
     ]
     config_path = "config.yaml"
-    output_dir = "output_labels"
+    output_dir = "output-labels"
 
     process_pdfs(pdf_paths, config_path, output_dir)
