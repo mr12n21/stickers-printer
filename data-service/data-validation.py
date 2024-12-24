@@ -43,7 +43,7 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
     
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 200)
-        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
+        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 85)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
         font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
     except IOError:
@@ -55,12 +55,12 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
 
     prefix_with_guests = f"{prefix.upper()} {guests}"
 
-    to_date_without_year = to_date.split(".")[0] + "." + to_date.split(".")[1]
+    to_date_without_year = to_date.split(".")[0]+"."+ to_date.split(".")[1]+"."
     draw.text((10, 50), f"K {to_date_without_year}", fill="black", font=font_large)
 
-    draw.text((320, 50), "E:", fill="black", font=font_large)
+    draw.text((400, 50), "E:", fill="black", font=font_large)
 
-    draw.text((10, 120), "VABC", fill="black", font=font_large)
+    draw.text((10, 140), "VABC", fill="black", font=font_large)
 
     img.save(output_path)
 

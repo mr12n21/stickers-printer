@@ -50,23 +50,17 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
 
     draw.text((300, 0), f"{year}", fill="#bfbfbf", font=font_year)
 
-    # Row 1: ID
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
-    # Row 2: "K" and "E" on the same row, separated by a gap
     prefix_with_guests = f"{prefix.upper()} {guests}"
 
-    # Draw "K" with only the second date (without the year)
     to_date_without_year = to_date.split(".")[0] + "." + to_date.split(".")[1]
     draw.text((10, 50), f"K {to_date_without_year}", fill="black", font=font_large)
 
-    # Draw "E" label on the same row, further to the right
     draw.text((320, 50), "E:", fill="black", font=font_large)
 
-    # Optional: Add more services below, for example:
     draw.text((10, 150), "Další služby:", fill="black", font=font_medium)
 
-    # Save the image to the output path
     img.save(output_path)
 
 def process_pdfs(pdf_paths, config_path, output_dir):
@@ -77,7 +71,6 @@ def process_pdfs(pdf_paths, config_path, output_dir):
     background_color = config.get("background_color", "#000000")
     rules = config.get("rules", [])
 
-    # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
     for pdf_path in pdf_paths:
@@ -85,20 +78,16 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error: File not found - {pdf_path}")
             continue
         try:
-            # Extract text from PDF and parse it
             text = extract_text_from_pdf(pdf_path)
             variable_symbol, from_date, to_date, guests, year = extract_data_from_text(text)
 
-            # Look for specific patterns in the text (for services like caravan and electricity)
             caravan_pattern = r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
             electricity_pattern = r"(Přípojka elektrického proudu)"
             caravan_match = re.search(caravan_pattern, text)
             electricity_match = re.search(electricity_pattern, text)
 
-            # Determine if the label should be created for this file
             if caravan_match or electricity_match:
                 prefix = "K" if caravan_match else "E"
-                # Generate the combined label with background color
                 combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
                 create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file, background_color)
                 print(f"Combined label created: {combined_file}")
@@ -107,14 +96,10 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error processing file {pdf_path}: {e}")
 
 if __name__ == "__main__":
-    # List of PDF files to process
     pdf_paths = [
-        "./testing-data/faktura_11.pdf",  # Example PDF file
+        "./testing-data/faktura_11.pdf",
     ]
-    # Path to config file
     config_path = "config.yaml"
-    # Output directory for the labels
     output_dir = "output-labels"
 
-    # Process the PDFs and generate labels
     process_pdfs(pdf_paths, config_path, output_dir)
