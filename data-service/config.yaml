@@ -1,5 +1,7 @@
-rules:
-  - match: ""
-    prefix: ""
-
 year: 2025
+background_color: "#e0e0e0"
+rules:
+  - match: "Stání pro karavan"
+    prefix: "K"
+  - match: "Přípojka elektrického proudu"
+    prefix: "E"
