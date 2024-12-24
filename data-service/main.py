@@ -27,7 +27,7 @@ def extract_data_from_text(text):
     to_date = match.group(2) if match else "?"
     guests = match.group(3) if match else "?"
 
-    year = from_date.split(".")[-1]
+    year = from_date.split(".")[-1][-2:]
 
     var_symbol_pattern = r"variabilní symbol:\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
@@ -42,47 +42,42 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
     
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 200)
-        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 50)
+        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
     except IOError:
         font_large = font_medium = font_small = ImageFont.load_default()
 
+    draw.text((300, 0), f"{year}", fill="#bfbfbf", font=font_year)
+
+    # Row 1: ID
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
+    # Row 2: "K" and "E" on the same row, separated by a gap
     prefix_with_guests = f"{prefix.upper()} {guests}"
 
+    # Draw "K" with only the second date (without the year)
     to_date_without_year = to_date.split(".")[0] + "." + to_date.split(".")[1]
-    draw.text((10, 50), f"K: {to_date_without_year}", fill="black", font=font_large)
+    draw.text((10, 50), f"K {to_date_without_year}", fill="black", font=font_large)
 
+    # Draw "E" label on the same row, further to the right
     draw.text((320, 50), "E:", fill="black", font=font_large)
 
-    year_text = f"Year: {year}"
-    
-    year_text_bbox = draw.textbbox((0, 0), year_text, font=font_large)
-    year_text_width = year_text_bbox[2] - year_text_bbox[0]
-    year_text_height = year_text_bbox[3] - year_text_bbox[1]
-    
-    year_box_x = 10
-    year_box_y = 120
-    year_box_width = year_text_width + 20
-    year_box_height = year_text_height + 10
-
-    draw.rectangle([year_box_x, year_box_y, year_box_x + year_box_width, year_box_y + year_box_height], fill="#b0b0b0")
-
-    draw.text((year_box_x + 10, year_box_y + 5), year_text, fill="black", font=font_small)
-
+    # Optional: Add more services below, for example:
     draw.text((10, 150), "Další služby:", fill="black", font=font_medium)
 
+    # Save the image to the output path
     img.save(output_path)
 
 def process_pdfs(pdf_paths, config_path, output_dir):
-    """Process PDF files, extract data, and create labels."""
     config = load_config(config_path)
     year = config.get("year", 2024)
-    background_color = config.get("background_color", "#e0e0e0")
+
+    
+    background_color = config.get("background_color", "#000000")
     rules = config.get("rules", [])
 
+    # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
     for pdf_path in pdf_paths:
@@ -90,16 +85,20 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error: File not found - {pdf_path}")
             continue
         try:
+            # Extract text from PDF and parse it
             text = extract_text_from_pdf(pdf_path)
             variable_symbol, from_date, to_date, guests, year = extract_data_from_text(text)
 
+            # Look for specific patterns in the text (for services like caravan and electricity)
             caravan_pattern = r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
             electricity_pattern = r"(Přípojka elektrického proudu)"
             caravan_match = re.search(caravan_pattern, text)
             electricity_match = re.search(electricity_pattern, text)
 
+            # Determine if the label should be created for this file
             if caravan_match or electricity_match:
                 prefix = "K" if caravan_match else "E"
+                # Generate the combined label with background color
                 combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
                 create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file, background_color)
                 print(f"Combined label created: {combined_file}")
@@ -108,10 +107,14 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error processing file {pdf_path}: {e}")
 
 if __name__ == "__main__":
+    # List of PDF files to process
     pdf_paths = [
-        "./testing-data/faktura_11.pdf",
+        "./testing-data/faktura_11.pdf",  # Example PDF file
     ]
+    # Path to config file
     config_path = "config.yaml"
+    # Output directory for the labels
     output_dir = "output-labels"
 
+    # Process the PDFs and generate labels
     process_pdfs(pdf_paths, config_path, output_dir)
