@@ -2,3 +2,4 @@ reportlab
 brother_ql
 Pillow
 pdfplumber
+PyYAML
