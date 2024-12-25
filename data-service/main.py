@@ -1,6 +1,6 @@
-import pdfplumber
+import pdfplumber  # type: ignore
 import yaml
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont  # type: ignore
 import os
 import re
 
@@ -29,7 +29,7 @@ def format_date(date):
 
 def extract_data_from_text(text):
     """Extract necessary data (variable symbol, dates, guests) from extracted PDF text."""
-    # Pattern to extract the dates and guests
+
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4}),\s*hostů:\s*(\d+)"
     match = re.search(date_pattern, text)
     from_date = format_date(match.group(1)) if match else "?"
@@ -63,11 +63,9 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
 
     prefix_with_guests = f"{prefix.upper()} {guests}"
 
-    draw.text((10, 50), f"{prefix} {to_date}", fill="black", font=font_large)
+    draw.text((10, 140), f"{to_date}", fill="black", font=font_large)
 
     draw.text((400, 50), "E:", fill="black", font=font_large)
-
-    draw.text((10, 140), "VABC", fill="black", font=font_large)
 
     img.save(output_path)
 

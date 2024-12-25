@@ -1,7 +1,11 @@
-year: 25
-background_color: "#e0e0e0"
-rules:
-  - match: "Stání pro karavan"
+year: 2024
+prefixes:
+  - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     prefix: "K"
-  - match: "Přípojka elektrického proudu"
+  - pattern: "(Přípojka elektrického proudu)"
     prefix: "E"
+  - pattern: "(Stání pro osobní auto)"
+    prefix: "A"
+  - pattern: "(Stanování|táborová plocha)"
+    prefix: "T"
+default_prefix: "N"

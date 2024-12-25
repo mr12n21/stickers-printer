@@ -36,31 +36,40 @@ def extract_data_from_text(text):
 
     return variable_symbol, from_date, to_date, guests, year
 
+def determine_prefix(text):
+    """Determine the prefix based on database-like conditions."""
+    prefix_rules = {
+        r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)": "K",
+        r"(fhsfi)": "A",
+    }
+    for pattern, prefix in prefix_rules.items():
+        if re.search(pattern, text):
+            return prefix
+    return "N"  # Default prefix if no condition matches
+
 def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, output_path):
     """Create a label image with text drawn on it."""
-    img = Image.new("RGB", (600, 230), color=(255, 255, 255))
+    img = Image.new("RGB", (600, 280), color=(255, 255, 255))  # Increased height for bottom services
     draw = ImageDraw.Draw(img)
-    
+
     try:
-        font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 200)
+        font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 210)
         font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 85)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
         font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
     except IOError:
         font_large = font_medium = font_small = ImageFont.load_default()
 
-    draw.text((300, 0), f"{year}", fill="#bfbfbf", font=font_year)
+    draw.text((280, 0), f"{year}", fill="#bfbfbf", font=font_year)
 
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
-    prefix_with_guests = f"{prefix.upper()} {guests}"
+    # Format date without spaces
+    to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
+    draw.text((10, 50), f"{to_date_formatted}", fill="black", font=font_large)
 
-    to_date_without_year = to_date.split(".")[0]+"."+ to_date.split(".")[1]+"."
-    draw.text((10, 50), f"K {to_date_without_year}", fill="black", font=font_large)
-
-    draw.text((400, 50), "E:", fill="black", font=font_large)
-
-    draw.text((10, 140), "VABC", fill="black", font=font_large)
+    # Display additional services
+    draw.text((10, 140), f"{prefix.upper()} {guests}", fill="black", font=font_large)
 
     img.save(output_path)
 
@@ -78,16 +87,11 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             text = extract_text_from_pdf(pdf_path)
             variable_symbol, from_date, to_date, guests, year = extract_data_from_text(text)
 
-            caravan_pattern = r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
-            electricity_pattern = r"(Přípojka elektrického proudu)"
-            caravan_match = re.search(caravan_pattern, text)
-            electricity_match = re.search(electricity_pattern, text)
+            prefix = determine_prefix(text)  # Dynamically determine prefix
 
-            if caravan_match or electricity_match:
-                prefix = "K" if caravan_match else "E"
-                combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-                create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file)
-                print(f"Combined label created: {combined_file}")
+            combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
+            create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file)
+            print(f"Combined label created: {combined_file}")
 
         except Exception as e:
             print(f"Error processing file {pdf_path}: {e}")
