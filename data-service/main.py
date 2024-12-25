@@ -1,6 +1,6 @@
-import pdfplumber  # type: ignore
+import pdfplumber
 import yaml
-from PIL import Image, ImageDraw, ImageFont  # type: ignore
+from PIL import Image, ImageDraw, ImageFont
 import os
 import re
 
@@ -19,15 +19,24 @@ def extract_text_from_pdf(pdf_path):
         text = " ".join(page.extract_text() for page in pdf.pages if page.extract_text())
     return text
 
+def format_date(date):
+    """Format date to remove spaces and add a period at the end."""
+    if date == "?":
+        return date
+    parts = date.split(".")
+    formatted_date = ".".join(part.strip() for part in parts if part.strip()) + "."
+    return formatted_date
+
 def extract_data_from_text(text):
     """Extract necessary data (variable symbol, dates, guests) from extracted PDF text."""
+    # Pattern to extract the dates and guests
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4}),\s*hostů:\s*(\d+)"
     match = re.search(date_pattern, text)
-    from_date = match.group(1) if match else "?"
-    to_date = match.group(2) if match else "?"
+    from_date = format_date(match.group(1)) if match else "?"
+    to_date = format_date(match.group(2)) if match else "?"
     guests = match.group(3) if match else "?"
 
-    year = from_date.split(".")[-1][-2:]
+    year = from_date.split(".")[-2] if from_date != "?" else "??"
 
     var_symbol_pattern = r"variabilní symbol:\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
@@ -35,14 +44,14 @@ def extract_data_from_text(text):
 
     return variable_symbol, from_date, to_date, guests, year
 
-def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, output_path, background_color):
+def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, output_path):
     """Create a label image with text drawn on it."""
-    img = Image.new("RGB", (600, 200), color=background_color)
+    img = Image.new("RGB", (600, 230), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
-    
+
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 200)
-        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
+        font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 85)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
         font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
     except IOError:
@@ -54,22 +63,17 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
 
     prefix_with_guests = f"{prefix.upper()} {guests}"
 
-    to_date_without_year = to_date.split(".")[0] + "." + to_date.split(".")[1]
-    draw.text((10, 50), f"K {to_date_without_year}", fill="black", font=font_large)
+    draw.text((10, 50), f"{prefix} {to_date}", fill="black", font=font_large)
 
-    draw.text((320, 50), "E:", fill="black", font=font_large)
+    draw.text((400, 50), "E:", fill="black", font=font_large)
 
-    draw.text((10, 150), "Další služby:", fill="black", font=font_medium)
+    draw.text((10, 140), "VABC", fill="black", font=font_large)
 
     img.save(output_path)
 
 def process_pdfs(pdf_paths, config_path, output_dir):
     config = load_config(config_path)
     year = config.get("year", 2024)
-
-    
-    background_color = config.get("background_color", "#000000")
-    rules = config.get("rules", [])
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -89,7 +93,7 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             if caravan_match or electricity_match:
                 prefix = "K" if caravan_match else "E"
                 combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-                create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file, background_color)
+                create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file)
                 print(f"Combined label created: {combined_file}")
 
         except Exception as e:

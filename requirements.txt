@@ -1,4 +1,3 @@
-Flask
 reportlab
 brother_ql
 Pillow
