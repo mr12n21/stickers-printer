@@ -21,7 +21,7 @@ def extract_text_from_pdf(pdf_path):
 
 def extract_data_from_text(text):
     """Extract necessary data (variable symbol, dates, guests) from extracted PDF text."""
-    # Pattern to extract the dates and guests
+
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4}),\s*hostů:\s*(\d+)"
     match = re.search(date_pattern, text)
     from_date = match.group(1) if match else "?"
@@ -40,16 +40,16 @@ def determine_prefix(text):
     """Determine the prefix based on database-like conditions."""
     prefix_rules = {
         r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)": "K",
-        r"(fhsfi)": "A",
+        r"(Přívěsný vozík)": "V",
     }
     for pattern, prefix in prefix_rules.items():
         if re.search(pattern, text):
             return prefix
-    return "N"  # Default prefix if no condition matches
+    return "N"
 
 def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, output_path):
     """Create a label image with text drawn on it."""
-    img = Image.new("RGB", (600, 280), color=(255, 255, 255))  # Increased height for bottom services
+    img = Image.new("RGB", (600, 280), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
     try:
@@ -64,11 +64,9 @@ def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, y
 
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
-    # Format date without spaces
     to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
     draw.text((10, 50), f"{to_date_formatted}", fill="black", font=font_large)
 
-    # Display additional services
     draw.text((10, 140), f"{prefix.upper()} {guests}", fill="black", font=font_large)
 
     img.save(output_path)
@@ -87,7 +85,7 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             text = extract_text_from_pdf(pdf_path)
             variable_symbol, from_date, to_date, guests, year = extract_data_from_text(text)
 
-            prefix = determine_prefix(text)  # Dynamically determine prefix
+            prefix = determine_prefix(text)
 
             combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file)

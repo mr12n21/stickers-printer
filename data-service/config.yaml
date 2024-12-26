@@ -8,4 +8,6 @@ prefixes:
     prefix: "A"
   - pattern: "(Stanování|táborová plocha)"
     prefix: "T"
+  - pattern: "(Přívěsný vozík)"
+    prefix: "V"
 default_prefix: "N"
