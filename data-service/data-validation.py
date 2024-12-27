@@ -19,7 +19,6 @@ def extract_text_from_pdf(pdf_path):
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
     with pdfplumber.open(pdf_path) as pdf:
         text = ""
-        # Iterate through all pages and extract text
         for page in pdf.pages:
             page_text = page.extract_text()
             if page_text:
@@ -50,11 +49,11 @@ def determine_prefixes(text, config):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
-            continue  # Skip invalid entries
-        print(f"Testing pattern: {pattern}")  # Debugging: print the current pattern
+            continue
+        print(f"Testing pattern: {pattern}")
         match = re.search(pattern, text)
         if match:
-            print(f"Match found for label {label} with pattern {pattern}")  # Debugging: print when pattern matches
+            print(f"Match found for label {label} with pattern {pattern}")
             prefixes.append(label)
     return prefixes
 
@@ -71,17 +70,13 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
     except IOError:
         font_large = font_medium = ImageFont.load_default()
 
-    # Draw the year watermark
     draw.text((280, 0), f"{year}", fill="#bfbfbf", font=font_year)
 
-    # Draw the ID
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
-    # Draw the to_date and 'E' at the top
     to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
     draw.text((10, 50), f"{to_date_formatted}", fill="black", font=font_large)
 
-    # Combine prefixes into a single line of text
     prefix_line = " ".join(prefixes)
     draw.text((10, 240), prefix_line, fill="black", font=font_medium)
 
@@ -100,20 +95,15 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error: File not found - {pdf_path}")
             continue
         try:
-            # Extract the text from the PDF
             text = extract_text_from_pdf(pdf_path)
-            print("Extracted text from PDF:\n", text)  # Debugging: print the extracted text
+            print("Extracted text from PDF:\n", text)
 
-            # Extract data (variable symbol, dates, etc.)
             variable_symbol, from_date, to_date, year = extract_data_from_text(text, year)
 
-            # Determine all prefixes dynamically based on config
             prefixes = determine_prefixes(text, config)
 
-            # Print all found prefixes for debugging
             print(f"Prefixes found: {prefixes}")
 
-            # Create the label image with the detected prefixes
             combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, prefixes, year, combined_file)
             print(f"Combined label created: {combined_file}")
