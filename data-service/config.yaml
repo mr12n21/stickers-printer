@@ -1,13 +1,10 @@
-year: 2024
+#konfigurace prefixu
 prefixes:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
-    prefix: "K"
-  - pattern: "(Přípojka elektrického proudu)"
-    prefix: "E"
-  - pattern: "(Stání pro osobní auto)"
-    prefix: "A"
-  - pattern: "(Stanování|táborová plocha)"
-    prefix: "T"
+    label: "K"
   - pattern: "(Přívěsný vozík)"
-    prefix: "V"
-default_prefix: "N"
+    label: "V"
+  - pattern: "Stan"
+    label: "A"
+
+year: 2026

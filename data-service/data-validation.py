@@ -1,8 +1,9 @@
 import pdfplumber  # type: ignore
-import yaml
+import yaml  # type: ignore
 from PIL import Image, ImageDraw, ImageFont  # type: ignore
 import os
 import re
+
 
 def load_config(config_path):
     """Load configuration from a YAML file."""
@@ -11,67 +12,84 @@ def load_config(config_path):
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
 
+
 def extract_text_from_pdf(pdf_path):
-    """Extract text from a PDF file."""
+    """Extract text from all pages in a PDF file."""
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
     with pdfplumber.open(pdf_path) as pdf:
-        text = " ".join(page.extract_text() for page in pdf.pages if page.extract_text())
+        text = ""
+        # Iterate through all pages and extract text
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text
     return text
 
-def extract_data_from_text(text):
-    """Extract necessary data (variable symbol, dates, guests) from extracted PDF text."""
 
-    date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4}),\s*hostů:\s*(\d+)"
+def extract_data_from_text(text, year):
+    """Extract necessary data (variable symbol, dates) from extracted PDF text."""
+    date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
     match = re.search(date_pattern, text)
     from_date = match.group(1) if match else "?"
     to_date = match.group(2) if match else "?"
-    guests = match.group(3) if match else "?"
 
-    year = from_date.split(".")[-1][-2:]
+    year = from_date.split(".")[-1][-2:] if from_date != "?" else year
 
     var_symbol_pattern = r"variabilní symbol:\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
 
-    return variable_symbol, from_date, to_date, guests, year
+    return variable_symbol, from_date, to_date, year
 
-def determine_prefix(text):
-    """Determine the prefix based on database-like conditions."""
-    prefix_rules = {
-        r"(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)": "K",
-        r"(Přívěsný vozík)": "V",
-    }
-    for pattern, prefix in prefix_rules.items():
-        if re.search(pattern, text):
-            return prefix
-    return "N"
 
-def create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, output_path):
+def determine_prefixes(text, config):
+    """Determine all prefixes from the configuration."""
+    prefixes = []
+    for rule in config.get("prefixes", []):
+        pattern = rule.get("pattern")
+        label = rule.get("label")
+        if not pattern or not label:
+            continue  # Skip invalid entries
+        print(f"Testing pattern: {pattern}")  # Debugging: print the current pattern
+        match = re.search(pattern, text)
+        if match:
+            print(f"Match found for label {label} with pattern {pattern}")  # Debugging: print when pattern matches
+            prefixes.append(label)
+    return prefixes
+
+
+def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, output_path):
     """Create a label image with text drawn on it."""
-    img = Image.new("RGB", (600, 280), color=(255, 255, 255))
+    img = Image.new("RGB", (600, 400), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 210)
         font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 85)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
     except IOError:
-        font_large = font_medium = font_small = ImageFont.load_default()
+        font_large = font_medium = ImageFont.load_default()
 
+    # Draw the year watermark
     draw.text((280, 0), f"{year}", fill="#bfbfbf", font=font_year)
 
+    # Draw the ID
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
 
+    # Draw the to_date and 'E' at the top
     to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
     draw.text((10, 50), f"{to_date_formatted}", fill="black", font=font_large)
 
-    draw.text((10, 140), f"{prefix.upper()} {guests}", fill="black", font=font_large)
+    # Combine prefixes into a single line of text
+    prefix_line = " ".join(prefixes)
+    draw.text((10, 240), prefix_line, fill="black", font=font_medium)
 
     img.save(output_path)
 
+
 def process_pdfs(pdf_paths, config_path, output_dir):
+    """Process a list of PDF files and generate labels based on configuration."""
     config = load_config(config_path)
     year = config.get("year", 2024)
 
@@ -82,17 +100,27 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             print(f"Error: File not found - {pdf_path}")
             continue
         try:
+            # Extract the text from the PDF
             text = extract_text_from_pdf(pdf_path)
-            variable_symbol, from_date, to_date, guests, year = extract_data_from_text(text)
+            print("Extracted text from PDF:\n", text)  # Debugging: print the extracted text
 
-            prefix = determine_prefix(text)
+            # Extract data (variable symbol, dates, etc.)
+            variable_symbol, from_date, to_date, year = extract_data_from_text(text, year)
 
+            # Determine all prefixes dynamically based on config
+            prefixes = determine_prefixes(text, config)
+
+            # Print all found prefixes for debugging
+            print(f"Prefixes found: {prefixes}")
+
+            # Create the label image with the detected prefixes
             combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-            create_combined_label(variable_symbol, from_date, to_date, guests, prefix, year, combined_file)
+            create_combined_label(variable_symbol, from_date, to_date, prefixes, year, combined_file)
             print(f"Combined label created: {combined_file}")
 
         except Exception as e:
             print(f"Error processing file {pdf_path}: {e}")
+
 
 if __name__ == "__main__":
     pdf_paths = [
