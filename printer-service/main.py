@@ -36,6 +36,6 @@ def print_label_with_image(image_path, printer_model, usb_path, label_type='62')
 
 printer_model = 'QL-1050'
 usb_path = '/dev/usb/lp0'
-image_path = './jooo.png'
+image_path = './joo.png'
 
 print_label_with_image(image_path, printer_model, usb_path)

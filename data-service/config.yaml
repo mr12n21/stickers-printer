@@ -4,7 +4,9 @@ prefixes:
     label: "K"
   - pattern: "(Přívěsný vozík)"
     label: "V"
-  - pattern: "Stan"
+  - pattern: "Stan malý"
     label: "A"
+  - pattern: "Hamaka"
+    label: "H"
 
 year: 2026
