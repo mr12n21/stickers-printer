@@ -16,6 +16,6 @@ celkova kompletace na rpi ktere bude zajistovat veskere sluby po ulozeni do smb
         /archiv
 
 
-#################
+###
 
 udelat js rozsireni ktere bude zjednodusovat ukladani na smb-share pdf
