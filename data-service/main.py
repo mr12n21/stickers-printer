@@ -27,18 +27,21 @@ def extract_data_from_text(text, default_year):
     from_date = match.group(1) if match else "?"
     to_date = match.group(2) if match else "?"
 
-    year = to_date.split(".")[-1] if to_date != "?" else str(default_year)
+    from_date_cleaned = ''.join(from_date.split())
+    to_date_cleaned = ''.join(to_date.split())
+
+    year = to_date_cleaned.split(".")[-1] if to_date_cleaned != "?" else str(default_year)
 
     var_symbol_pattern = r"variabilní symbol:\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
 
-    return variable_symbol, from_date, to_date, year
+    return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     karavan_found = False
-    electric_found = False  # Indikátor pro "E"
+    electric_found = False
 
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
@@ -85,27 +88,23 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
     except IOError:
         font_large = font_medium = ImageFont.load_default()
 
-    # Rok (statický nahoře vlevo) - Pouze poslední dvě číslice
     year_short = year[-2:]
     draw.text((280, 0), f"{year_short}", fill="#bfbfbf", font=font_year)
 
-    # Variabilní symbol a datum
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
     to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
     draw.text((10, 30), f"{to_date_formatted}", fill="black", font=font_large)
 
-    # Prefix E na konkrétní pozici
     if electric_found:
-        draw.text((320, 30), "E", fill="black", font=font_large)
+        draw.text((340, 30), "E", fill="black", font=font_large)
 
-    # Zbytek prefixů
     draw.text((10, 120), final_output, fill="black", font=font_large)
 
     img.save(output_path)
 
 def process_pdfs(pdf_paths, config_path, output_dir):
     config = load_config(config_path)
-    default_year = config.get("year", 2024)
+    year = str(config.get("year", 2024))
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -115,18 +114,14 @@ def process_pdfs(pdf_paths, config_path, output_dir):
             continue
         try:
             text = extract_text_from_pdf(pdf_path)
-            variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
+            variable_symbol, from_date, to_date, _ = extract_data_from_text(text, year)
 
-            # Zpracování prefixů
             prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, config)
 
-            # Zpracování dynamických prefixů bez E
             final_output = process_prefixes_and_output(prefixes_found, karavan_found)
 
-            # Cesta k výslednému obrázku
             combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
 
-            # Generování labelu s prefixem E na statickém místě
             create_combined_label(variable_symbol, from_date, to_date, prefixes_found.keys(), year, combined_file, final_output, electric_found)
             print(f"Combined label created: {combined_file}")
 
