@@ -38,7 +38,7 @@ def extract_data_from_text(text, default_year):
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     karavan_found = False
-    electric_found = False  # Indikátor pro "E"
+    electric_found = False
 
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
@@ -92,7 +92,7 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
     draw.text((10, 30), f"{to_date_formatted}", fill="black", font=font_large)
 
     if electric_found:
-        draw.text((350, 30), "E", fill="black", font=font_large)
+        draw.text((320, 30), "E", fill="black", font=font_large)
 
     draw.text((10, 120), final_output, fill="black", font=font_large)
 
