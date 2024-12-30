@@ -1,12 +1,13 @@
-#konfigurace prefixu
 prefixes:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     label: "K"
-  - pattern: "(Přívěsný vozík)"
+  - pattern: "Přívěsný vozík"
     label: "V"
   - pattern: "Stan malý"
     label: "A"
   - pattern: "Hamaka"
     label: "H"
+  - pattern: "Přípojka elektrického proudu"
+    label: "E"
 
 year: 2026
