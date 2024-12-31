@@ -2,5 +2,6 @@
 /bin
 /lib
 /lib64
+/include
 /data-service/output-labels
 pyvenv.cfg
