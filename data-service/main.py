@@ -1,8 +1,12 @@
-import pdfplumber  # type: ignore
-import yaml  # type: ignore
-from PIL import Image, ImageDraw, ImageFont  # type: ignore
+import time
 import os
+import shutil
 import re
+import yaml
+import pdfplumber
+from PIL import Image, ImageDraw, ImageFont
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 def load_config(config_path):
     if not os.path.exists(config_path):
@@ -102,37 +106,60 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
 
     img.save(output_path)
 
-def process_pdfs(pdf_paths, config_path, output_dir):
-    config = load_config(config_path)
-    year = str(config.get("year", 2024))
+class PDFHandler(FileSystemEventHandler):
+    def __init__(self, input_folder, archive_folder, config_path, output_dir):
+        self.input_folder = input_folder
+        self.archive_folder = archive_folder
+        self.config_path = config_path
+        self.output_dir = output_dir
 
-    os.makedirs(output_dir, exist_ok=True)
+    def on_created(self, event):
+        if event.is_directory:
+            return
 
-    for pdf_path in pdf_paths:
-        if not os.path.exists(pdf_path):
-            print(f"Error: File not found - {pdf_path}")
-            continue
+        if event.src_path.endswith(".pdf"):
+            print(f"New PDF detected: {event.src_path}")
+            self.process_pdf(event.src_path)
+
+    def process_pdf(self, pdf_path):
         try:
             text = extract_text_from_pdf(pdf_path)
-            variable_symbol, from_date, to_date, _ = extract_data_from_text(text, year)
-
-            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, config)
-
+            variable_symbol, from_date, to_date, year = extract_data_from_text(text, "2024")
+            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, load_config(self.config_path))
             final_output = process_prefixes_and_output(prefixes_found, karavan_found)
-
-            combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-
+            
+            combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, prefixes_found.keys(), year, combined_file, final_output, electric_found)
             print(f"Combined label created: {combined_file}")
+            
+            shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
+            print(f"Moved {pdf_path} to archive.")
 
         except Exception as e:
             print(f"Error processing file {pdf_path}: {e}")
 
-if __name__ == "__main__":
-    pdf_paths = [
-        "./testing-data/faktura_11.pdf",
-    ]
-    config_path = "config.yaml"
-    output_dir = "output-labels"
+def start_watching(input_folder, archive_folder, config_path, output_dir):
+    event_handler = PDFHandler(input_folder, archive_folder, config_path, output_dir)
+    observer = Observer()
+    observer.schedule(event_handler, input_folder, recursive=False)
+    observer.start()
 
-    process_pdfs(pdf_paths, config_path, output_dir)
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+
+    observer.join()
+
+if __name__ == "__main__":
+    input_folder = "./data/input"
+    archive_folder = "./data/arcich"
+    config_path = "config.yaml"
+    output_dir = "./output-labels"
+    
+    os.makedirs(input_folder, exist_ok=True)
+    os.makedirs(archive_folder, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    start_watching(input_folder, archive_folder, config_path, output_dir)
