@@ -13,6 +13,4 @@ prefixes:
 year: 2025
 
 blacklist:
-  - "Zakázaná fráze 1"
-  - "Zakázaná fráze 2"
-  - "Nepovolený text"
+  - "nejak fraze"
