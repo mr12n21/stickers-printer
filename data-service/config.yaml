@@ -10,4 +10,9 @@ prefixes:
   - pattern: "Přípojka elektrického proudu"
     label: "E"
 
-year: 2027
+year: 2025
+
+blacklist:
+  - "Zakázaná fráze 1"
+  - "Zakázaná fráze 2"
+  - "Nepovolený text"
