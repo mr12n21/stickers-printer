@@ -167,7 +167,7 @@ def start_watching(input_folder, archive_folder, config_path, output_dir):
 
 if __name__ == "__main__":
     input_folder = "./data/input"
-    archive_folder = "./data/arcich"
+    archive_folder = "./data/archiv"
     config_path = "config.yaml"
     output_dir = "./output-labels"
     
