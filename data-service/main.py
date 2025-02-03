@@ -4,7 +4,6 @@ import shutil
 import re
 import yaml
 import pdfplumber
-from PIL import Image, ImageDraw, ImageFont
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -32,9 +31,10 @@ def contains_blacklisted_text(text, blacklist):
     return False
 
 class PDFHandler(FileSystemEventHandler):
-    def __init__(self, input_folder, archive_folder, config_path, output_dir):
+    def __init__(self, input_folder, archive_folder, invalid_folder, config_path, output_dir):
         self.input_folder = input_folder
         self.archive_folder = archive_folder
+        self.invalid_folder = invalid_folder
         self.config_path = config_path
         self.output_dir = output_dir
 
@@ -51,23 +51,19 @@ class PDFHandler(FileSystemEventHandler):
             config = load_config(self.config_path)
             text = extract_text_from_pdf(pdf_path)
             
-            # Kontrola proti blacklistovaným frázím
             if contains_blacklisted_text(text, config.get("blacklist", [])):
-                print(f"File {pdf_path} contains blacklisted text. Moving to archive without processing.")
+                print(f"File {pdf_path} contains blacklisted text. Moving to archive.")
                 shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
                 return
-
-            # Zde pokračuje běžné zpracování PDF (konverze do PNG atd.)
-            print(f"Processing {pdf_path} as usual...")
             
-            shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
-            print(f"Moved {pdf_path} to archive.")
-
+            print(f"File {pdf_path} does not match criteria. Moving to invalid folder.")
+            shutil.move(pdf_path, os.path.join(self.invalid_folder, os.path.basename(pdf_path)))
+            
         except Exception as e:
             print(f"Error processing file {pdf_path}: {e}")
 
-def start_watching(input_folder, archive_folder, config_path, output_dir):
-    event_handler = PDFHandler(input_folder, archive_folder, config_path, output_dir)
+def start_watching(input_folder, archive_folder, invalid_folder, config_path, output_dir):
+    event_handler = PDFHandler(input_folder, archive_folder, invalid_folder, config_path, output_dir)
     observer = Observer()
     observer.schedule(event_handler, input_folder, recursive=False)
     observer.start()
@@ -83,11 +79,13 @@ def start_watching(input_folder, archive_folder, config_path, output_dir):
 if __name__ == "__main__":
     input_folder = "./data/input"
     archive_folder = "./data/archive"
+    invalid_folder = "./data/invalid"
     config_path = "config.yaml"
     output_dir = "./output-labels"
     
     os.makedirs(input_folder, exist_ok=True)
     os.makedirs(archive_folder, exist_ok=True)
+    os.makedirs(invalid_folder, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    start_watching(input_folder, archive_folder, config_path, output_dir)
+    start_watching(input_folder, archive_folder, invalid_folder, config_path, output_dir)
