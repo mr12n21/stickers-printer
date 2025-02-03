@@ -25,6 +25,10 @@ def extract_text_from_pdf(pdf_path):
                 text += page_text
     return text
 
+def contains_blacklisted_text(text, blacklist):
+    """Check if the text contains any blacklisted phrases."""
+    return any(phrase in text for phrase in blacklist)
+
 def extract_data_from_text(text, default_year):
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
     match = re.search(date_pattern, text)
@@ -123,9 +127,18 @@ class PDFHandler(FileSystemEventHandler):
 
     def process_pdf(self, pdf_path):
         try:
+            config = load_config(self.config_path)
             text = extract_text_from_pdf(pdf_path)
+
+            # Check if the PDF contains blacklisted text
+            blacklist = config.get("blacklist", [])
+            if contains_blacklisted_text(text, blacklist):
+                print(f"File {pdf_path} contains blacklisted text. Moving to archive.")
+                shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
+                return
+
             variable_symbol, from_date, to_date, year = extract_data_from_text(text, "2024")
-            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, load_config(self.config_path))
+            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, config)
             final_output = process_prefixes_and_output(prefixes_found, karavan_found)
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
