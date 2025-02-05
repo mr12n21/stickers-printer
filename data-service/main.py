@@ -130,7 +130,6 @@ class PDFHandler(FileSystemEventHandler):
             config = load_config(self.config_path)
             text = extract_text_from_pdf(pdf_path)
 
-            # Check if the PDF contains blacklisted text
             blacklist = config.get("blacklist", [])
             if contains_blacklisted_text(text, blacklist):
                 print(f"File {pdf_path} contains blacklisted text. Moving to archive.")

@@ -9,8 +9,8 @@ prefixes:
     label: "H"
   - pattern: "Přípojka elektrického proudu"
     label: "E"
-
-year: 2025
-
+    
 blacklist:
  - "chatka"
+
+year: 2025
