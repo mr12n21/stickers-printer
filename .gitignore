@@ -4,3 +4,5 @@
 /lib64
 /data-service/output-labels
 pyvenv.cfg
+
+install.sh
