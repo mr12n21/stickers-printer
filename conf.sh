@@ -44,7 +44,7 @@ WorkingDirectory=/home/pi/stickers-printer
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
-User=pi
+User=p
 
 [Install]
 WantedBy=multi-user.target" | sudo tee $SERVICE_FILE
