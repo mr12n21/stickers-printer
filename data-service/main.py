@@ -57,15 +57,20 @@ def find_prefix_and_percentage(text, config):
         if not pattern or not label:
             continue
 
-        matches = re.findall(pattern, text)
+        # This pattern is modified to capture the prefix and any number before it
+        matches = re.findall(r"(\d*)\s*" + pattern, text)  # match optional number before prefix
 
-        if matches:
+        for match in matches:
+            number = int(match[0]) if match[0] else 1  # default to 1 if no number found
             if label == "K":
                 karavan_found = True
             elif label == "E":
                 electric_found = True
             else:
-                prefixes_found[label] = len(matches)
+                if label in prefixes_found:
+                    prefixes_found[label] += number
+                else:
+                    prefixes_found[label] = number
 
     return prefixes_found, karavan_found, electric_found
 
