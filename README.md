@@ -1,4 +1,11 @@
-# stickers-printer
+co je jeste treba resit:
 
-This is a small project that aims to simplify life for users.
-Raspberry PI should start ftp and what is saved is printed as a label from the original file in pdf, the data is selected to be printed simply.
+vypocet karavan
+
+    udelat system ktery bude archivovat vsechna pdf aby byli dostupna v pripade problemu a pro zpetnou analizu
+
+pocet vytisku podle prefixu
+
+###
+
+udelat js rozsireni ktere bude zjednodusovat ukladani na smb-share pdf
