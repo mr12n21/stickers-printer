@@ -40,7 +40,7 @@ def extract_data_from_text(text, default_year):
 
     year = to_date_cleaned.split(".")[-1] if to_date_cleaned != "?" else str(default_year)
 
-    var_symbol_pattern = r"variabilní symbol:\s*(\d+)"
+    var_symbol_pattern = r"Hotelový účet č.\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
 
