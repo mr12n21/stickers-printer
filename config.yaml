@@ -5,8 +5,6 @@ prefixes:
     label: "V"
   - pattern: "Stan malý"
     label: "A"
-  - pattern: "Hamaka"
-    label: "H"
   - pattern: "Přípojka elektrického proudu"
     label: "E"
     

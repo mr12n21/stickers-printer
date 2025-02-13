@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-pip smbd tshark mc nmap
+sudo apt install -y python3 python3-pip smbd tshark mc nmap samba
 
 cd /home/pi
 
