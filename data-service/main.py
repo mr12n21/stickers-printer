@@ -100,7 +100,7 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
     draw.text((280, 0), f"{year_short}", fill="#bfbfbf", font=font_year)
 
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
-    to_date_formatted = f"{to_date.split('.')[0]}.{to_date.split('.')[1]}."
+    to_date_formatted = ".".join(to_date.split(".")[:2]) + "."
     draw.text((10, 30), f"{to_date_formatted}", fill="black", font=font_large)
 
     if electric_found:
