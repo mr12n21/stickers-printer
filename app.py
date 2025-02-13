@@ -170,7 +170,7 @@ if __name__ == "__main__":
     input_folder = "./data/input"
     archive_folder = "./data/archiv"
     config_path = "config.yaml"
-    output_dir = "./output-labels"
+    output_dir = "./data/output-labels"
     printer_model = 'QL-1050'
     usb_path = '/dev/usb/lp0'
     
