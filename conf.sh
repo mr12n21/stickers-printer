@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-pip smbd tshark mc nmap samba
+sudo apt install -y python3 python3-pip smbd tshark mc nmap
 
 cd /home/pi
 
@@ -9,21 +9,8 @@ PROJECT_DIR="/home/pi/"
 sudo rm -rf $PROJECT_DIR
 git clone https://github.com/mr12n21/stickers-printer $PROJECT_DIR
 
-SMB_CONF="/etc/samba/smb.conf"
-SHARE_PATH="/home/stickers-printer/data-service/input"
-
 sudo mkdir -p $SHARE_PATH
 sudo chmod 777 $SHARE_PATH
-
-echo "[PublicShare]
-   path = $SHARE_PATH
-   browseable = yes
-   writable = yes
-   guest ok = yes
-   create mask = 0777
-   directory mask = 0777" | sudo tee -a $SMB_CONF
-
-sudo systemctl restart smbd
 
 cd $PROJECT_DIR
 python3 -m venv venv
