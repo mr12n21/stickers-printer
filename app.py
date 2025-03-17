@@ -7,9 +7,9 @@ import pdfplumber
 from PIL import Image, ImageDraw, ImageFont
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from brother_ql.raster import BrotherQLRaster  # type: ignore
-from brother_ql.backends.helpers import send  # type: ignore
-from brother_ql.conversion import convert  # type: ignore
+from brother_ql.raster import BrotherQLRaster
+from brother_ql.backends.helpers import send
+from brother_ql.conversion import convert
 
 def load_config(config_path):
     if not os.path.exists(config_path):
