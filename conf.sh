@@ -4,6 +4,10 @@ LOG_FILE="/var/log/stickers_printer_setup.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "Starting setup at $(date)"
 
+
+#bude treba udelat .env ktery se nasledne nebude poshovat a take udelat uprava kvuli tomu aby se udelat skript na autamaticke pripojovan
+# 
+
 SMB_IP="192.168.1.100"          # SMB server IP address
 SMB_USER="smbuser"             # SMB username
 SMB_PASS="smbpass"             # SMB password
