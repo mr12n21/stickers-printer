@@ -16,7 +16,7 @@ def load_config(config_path):
         raise FileNotFoundError(f"Config file not found: {config_path}")
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
-
+    
 def extract_text_from_pdf(pdf_path):
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
@@ -45,6 +45,8 @@ def extract_data_from_text(text, default_year):
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
+def find_special_prefix_and_percentage(text):
+
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     karavan_found = False
@@ -67,24 +69,8 @@ def find_prefix_and_percentage(text, config):
 
 #predelat funkci na pocet k karavanu aby se pocitali spravne dle pdf
 
-def calculating_caravan(prefixes_foun, karavan_found, text, config):
-    prefixes_found = {}
-    karavan_found = False
-    electric_found = False
-    for rule in config.get("prefixes", []):
-        pattern = rule.get("pattern")
-        label = rule.get("label")
-        if not pattern or not label:
-            continue
-        matches = re.findall(pattern, text)
-        if matches:
-            if label == "K":
-                karavan_found = True
-            elif label == "E":
-                electric_found = True
-            else:
-                prefixes_found[label] = len(matches)
-    return prefixes_found, karavan_found, electric_found
+#def calculating_caravan(prefixes_foun, karavan_found, text, config):
+
 
 def process_prefixes_and_output(prefixes_found, karavan_found):
     final_output = []
