@@ -7,7 +7,14 @@ prefixes:
     label: "A"
   - pattern: "Přípojka elektrického proudu"
     label: "E"
-    
+
+special:
+  - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
+    label: "K"
+  - pattern: "obytný přívěs"
+    label: "K"
+  - pattern: "mikrobus"
+
 blacklist:
  - "chatka"
 
