@@ -45,6 +45,11 @@ def extract_data_from_text(text, default_year):
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
+#v pdf je jsne jak by meli byt karavnay ale otazka jestli je relevanti spolechat ze to bude bez kolizi z hlediska P{neco}
+#je treba zitra se dodomluvit
+#nasledna je treba udealt tu funkci take je treba se zeptat na to jak to bude  s auty a nasledne dovytahnout a udealt prefixi
+#nalsedne terostavni s finalni implementaci s nas
+
 def find_special_prefix_and_percentage(text):
     special_prefixes = {
         "K": r"Karavan",
