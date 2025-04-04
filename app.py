@@ -46,6 +46,21 @@ def extract_data_from_text(text, default_year):
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
 def find_special_prefix_and_percentage(text):
+    special_prefixes = {
+        "K": r"Karavan",
+        "E": r"Elektro",
+        "P": r"Príves",
+        "T": r"Traktor",
+        "S": r"Snímač",
+        "B": r"Benzín",
+        "D": r"Diesel"
+    }
+    prefixes_found = {}
+    for prefix, pattern in special_prefixes.items():
+        matches = re.findall(pattern, text)
+        if matches:
+            prefixes_found[prefix] = len(matches)
+    return prefixes_found
 
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
@@ -68,7 +83,6 @@ def find_prefix_and_percentage(text, config):
 
 
 #predelat funkci na pocet k karavanu aby se pocitali spravne dle pdf
-
 #def calculating_caravan(prefixes_foun, karavan_found, text, config):
 
 
