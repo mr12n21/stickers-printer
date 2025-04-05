@@ -102,7 +102,7 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
         else:
             final_output.append(label)
     
-    # Elektřina se přidá jen jako "E", bez počtu
+    # Přidání "E" pro elektřinu
     if electric_found:
         final_output.append("E")
     
@@ -176,7 +176,7 @@ class PDFHandler(FileSystemEventHandler):
             standard_counts, electric_found = count_standard_prefixes(text, config.get("prefixes", []))
             
             final_output = process_prefixes_and_output(special_counts, standard_counts, electric_found)
-            total_prints = max(sum(special_counts.values()), 1)  # Počet tisků podle speciálních prefixů
+            total_prints = max(sum(special_counts.values()), 1)
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
