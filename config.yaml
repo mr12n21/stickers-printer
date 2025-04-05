@@ -1,6 +1,4 @@
 prefixes:
-  - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
-    label: "K"
   - pattern: "Přívěsný vozík"
     label: "V"
   - pattern: "Stan malý"
@@ -11,11 +9,9 @@ prefixes:
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     label: "K"
-  - pattern: "obytný přívěs"
-    label: "K"
-  - pattern: "mikrobus"
+    identifier: "P"
 
 blacklist:
- - "chatka"
+  - "chatka"
 
 year: 2025

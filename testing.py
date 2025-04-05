@@ -44,62 +44,71 @@ def extract_data_from_text(text, default_year):
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
-def count_caravans_from_p_values(text):
-    p_pattern = r"Ubytovací služby.*?P(\d+)"
-    p_matches = re.findall(p_pattern, text, re.DOTALL)
+def count_special_prefixes(text, special_config):
+    special_counts = {}
+    for rule in special_config:
+        pattern = rule.get("pattern")
+        label = rule.get("label")
+        identifier = rule.get("identifier")
+        if not pattern or not label or not identifier:
+            continue
+        
+        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+|\w+)"
+        p_matches = re.findall(p_pattern, text, re.DOTALL)
+        unique_p_values = set(p_matches)
+        count = len(unique_p_values)
+        if count > 0:
+            special_counts[label] = count
     
-    #unikatni hodnoty P
-    unique_p_values = set(p_matches)
-    
-    #pocet karavanu je roven unikatni pocetu P hodnot
-    caravan_count = len(unique_p_values)
-    return caravan_count if caravan_count > 0 else 1
+    return special_counts
 
-def find_prefix_and_percentage(text, config):
+def count_standard_prefixes(text, prefixes_config):
     prefixes_found = {}
-    karavan_found = False
     electric_found = False
     
-    # kontrola specialnich prefixu
-    special_patterns = [rule for rule in config.get("special", []) if rule.get("label") == "K"]
-    for rule in special_patterns:
-        pattern = rule.get("pattern")
-        if pattern and re.search(pattern, text):
-            karavan_found = True
-            break
-    
-    #kontrola beznych prefixu
-    for rule in config.get("prefixes", []):
+    for rule in prefixes_config:
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
             continue
-        matches = re.findall(pattern, text)
-        if matches:
-            if label == "E":
+        
+        if label == "E":
+            # Elektřina se jen detekuje, ignorujeme "Počet"
+            if re.search(pattern, text, re.DOTALL):
                 electric_found = True
-            elif label != "K":
-                prefixes_found[label] = len(matches)
+        else:
+            # Ostatní prefixy berou "Počet" z každého řádku
+            matches = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
+            if matches:
+                # Ukládáme poslední nalezený počet pro daný prefix
+                prefixes_found[label] = int(matches[-1])
     
-    return prefixes_found, karavan_found, electric_found
+    return prefixes_found, electric_found
 
-def process_prefixes_and_output(prefixes_found, karavan_count):
+def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
-    if karavan_count > 0:
-        if karavan_count > 1:
-            final_output.append(f"{karavan_count}K")
-        else:
-            final_output.append("K")
     
-    for prefix, count in prefixes_found.items():
+    # Speciální prefixy
+    for label, count in special_counts.items():
         if count > 1:
-            final_output.append(f"{count}{prefix}")
+            final_output.append(f"{count}{label}")
         else:
-            final_output.append(prefix)
+            final_output.append(label)
+    
+    # Standardní prefixy (kromě E)
+    for label, count in standard_counts.items():
+        if count > 1:
+            final_output.append(f"{count}{label}")
+        else:
+            final_output.append(label)
+    
+    # Elektřina se přidá jen jako "E", bez počtu
+    if electric_found:
+        final_output.append("E")
     
     return "".join(final_output)
 
-def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, output_path, final_output, electric_found):
+def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     try:
@@ -118,7 +127,6 @@ def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, o
     draw.text((10, 120), final_output, fill="black", font=font_large)
     img.save(output_path)
 
-#zkompletovana funkce pro tisk
 """
 def print_label_with_image(image_path, printer_model, usb_path, label_type='62'):
     try:
@@ -164,19 +172,18 @@ class PDFHandler(FileSystemEventHandler):
                 return
 
             variable_symbol, from_date, to_date, year = extract_data_from_text(text, "2024")
-            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, config)
+            special_counts = count_special_prefixes(text, config.get("special", []))
+            standard_counts, electric_found = count_standard_prefixes(text, config.get("prefixes", []))
             
-            #pocet karavanu podle P hodnot
-            caravan_count = count_caravans_from_p_values(text) if karavan_found else 0
-            final_output = process_prefixes_and_output(prefixes_found, caravan_count)
+            final_output = process_prefixes_and_output(special_counts, standard_counts, electric_found)
+            total_prints = max(sum(special_counts.values()), 1)  # Počet tisků podle speciálních prefixů
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-            create_combined_label(variable_symbol, from_date, to_date, prefixes_found.keys(), year, combined_file, final_output, electric_found)
+            create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
             print(f"Vytvořen kombinovaný štítek: {combined_file}")
             
-            #simulace tisku
-            for i in range(max(1, caravan_count)):
-                print(f"Simulovaný tisk {i+1}/{max(1, caravan_count)} štítku: {combined_file}")
+            for i in range(total_prints):
+                print(f"Simulovaný tisk {i+1}/{total_prints} štítku: {combined_file}")
             
             shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
             print(f"Přesunut {pdf_path} do archivu.")
