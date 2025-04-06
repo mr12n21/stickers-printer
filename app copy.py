@@ -123,7 +123,7 @@ def find_prefix_and_percentage(text, config):
 
 def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
-    
+
     special_output = []
     for label, count in special_counts.items():
         if count > 1:
@@ -133,32 +133,28 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     special_str = "".join(special_output)
     if special_str:
         print(f"Speciální prefixy: {special_str}")
-    
+
     standard_output = []
     for label in standard_counts.keys():
         standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
         print(f"Standardní prefixy: {standard_str}")
-    
-    electric_str = "E" if electric_found else ""
-    if electric_found:
-        print("Detekována elektřina: E")
-    
-    final_output = special_str + standard_str + electric_str
-    print(f"Celkový výstup prefixů: {final_output}")
-    
+
+    # NEzahrnujeme "E" do final_output – bude zobrazena nahoře, pokud electric_found=True
+    final_output = special_str + standard_str
+    print(f"Celkový výstup prefixů (bez E): {final_output}")
+
     total_prints = 0
     for part in re.findall(r'(\d*[A-Za-z])', final_output):
-        if part == "E":
-            continue
         if part[:-1].isdigit():
             total_prints += int(part[:-1])
         else:
             total_prints += 1
     print(f"Počet tisků určený z '{final_output}': {total_prints}")
-    
+
     return final_output, total_prints
+
 
 def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     print(f"Vytvářím štítek: {output_path}")
@@ -234,56 +230,33 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         print(f"Chyba při zpracování souboru {pdf_path}: {e}")
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
-    # Vytvoření potřebných složek, pokud neexistují
-    for folder in [input_folder, archive_folder, output_dir]:
-        try:
-            os.makedirs(folder, exist_ok=True)
-            print(f"Vytvořena složka {folder}, pokud neexistovala.")
-        except PermissionError:
-            print(f"Nemohu vytvořit složku {folder} kvůli nedostatečným oprávněním.")
-            return
-    
-    # Kontrola oprávnění pro čtení a zápis
+    if not os.path.exists(input_folder):
+        print(f"Síťová složka {input_folder} neexistuje nebo není připojena.")
+        return
     if not os.access(input_folder, os.R_OK):
         print(f"Chybí oprávnění pro čtení složky {input_folder}.")
         return
-    if not os.access(input_folder, os.W_OK):
-        print(f"Chybí oprávnění pro zápis do složky {input_folder}.")
-        return
-    if not os.access(archive_folder, os.W_OK):
-        print(f"Chybí oprávnění pro zápis do složky {archive_folder}.")
-        return
-    if not os.access(output_dir, os.W_OK):
-        print(f"Chybí oprávnění pro zápis do složky {output_dir}.")
-        return
 
-    # Načtení konfigurace
-    try:
-        config = load_config(config_path)
-    except Exception as e:
-        print(f"Chyba při načítání konfigurace: {e}")
-        return
+    os.makedirs(archive_folder, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
+    config = load_config(config_path)
+
+    processed_files = set()
     print(f"Spouštím sledování síťové složky: {input_folder}")
-
-    while True:  # Hlavní smyčka
-        print(f"Kontroluji složku {input_folder}...")
-        try:
-            found_pdf = False
+    try:
+        while True:
+            print(f"Kontroluji složku {input_folder}...")
             for filename in os.listdir(input_folder):
                 if filename.endswith(".pdf"):
                     pdf_path = os.path.join(input_folder, filename)
-                    print(f"Zjištěn PDF soubor: {pdf_path}")
-                    success = process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
-                    if success:
-                        found_pdf = True
-                        time.sleep(1)  # Krátká pauza po zpracování jednoho PDF
-                        break  # Po zpracování jednoho PDF jdeme znovu projít složku
-            if not found_pdf:
-                time.sleep(2)  # Pokud nebyl nalezen žádný nový PDF, čekáme déle
-        except Exception as e:
-            print(f"Chyba při kontrole složky: {e}")
-            time.sleep(5)
+                    if pdf_path not in processed_files:
+                        print(f"Detekován nový PDF: {pdf_path}")
+                        process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
+                        processed_files.add(pdf_path)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("Sledování ukončeno.")
 
 if __name__ == "__main__":
     start_watching(INPUT_FOLDER, ARCHIVE_FOLDER, CONFIG_PATH, OUTPUT_DIR, PRINTER_MODEL, USB_PATH)
