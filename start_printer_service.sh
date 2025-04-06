@@ -1,6 +1,9 @@
 #!/bin/bash
-PROJECT_DIR="/home/pi/stickers-printer"
 
-source "$PROJECT_DIR/venv/bin/activate"
+cd
 
-python "$PROJECT_DIR/app.py"
+chmod 666 /dev/usb/lp0
+
+source ./venv/bin/activate
+
+python3 app.py

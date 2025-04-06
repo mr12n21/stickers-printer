@@ -5,19 +5,44 @@ import re
 import yaml
 import pdfplumber
 from PIL import Image, ImageDraw, ImageFont
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
+# Globální cesty
+INPUT_FOLDER = "./data/input"  # Síťová složka SMB s volným přístupem
+ARCHIVE_FOLDER = "./data/archiv"
+CONFIG_PATH = "config.yaml"
+OUTPUT_DIR = "./data/output-labels"
+PRINTER_MODEL = "QL-1050"
+USB_PATH = "/dev/usb/lp0"
+
 def load_config(config_path):
+    print(f"Načítám konfiguraci z: {config_path}")
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Konfigurační soubor nenalezen: {config_path}")
     with open(config_path, "r") as file:
-        return yaml.safe_load(file)
+        config = yaml.safe_load(file)
+    print(f"Konfigurace načtena: {config}")
+    return config
+
+def is_file_ready(file_path, timeout=10):
+    print(f"Kontroluji připravenost souboru: {file_path}")
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with open(file_path, 'rb') as f:
+                f.read(1)
+            print(f"Soubor {file_path} je připraven k načtení.")
+            return True
+        except (IOError, PermissionError):
+            print(f"Soubor {file_path} ještě není připraven, čekám...")
+            time.sleep(1)
+    print(f"Timeout: Soubor {file_path} není připraven po {timeout} sekundách.")
+    return False
 
 def extract_text_from_pdf(pdf_path):
+    print(f"Extrahuji text z: {pdf_path}")
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF soubor nenalezen: {pdf_path}")
     with pdfplumber.open(pdf_path) as pdf:
@@ -26,12 +51,19 @@ def extract_text_from_pdf(pdf_path):
             page_text = page.extract_text()
             if page_text:
                 text += page_text
-    return text
+        print(f"Extrahovaný text z {pdf_path}: {text[:100]}...")
+    return text if text else ""
 
 def contains_blacklisted_text(text, blacklist):
-    return any(phrase in text for phrase in blacklist)
+    if text is None or blacklist is None:
+        return False
+    result = any(phrase in text for phrase in blacklist)
+    print(f"Kontrola blacklistu: {result} (blacklist: {blacklist})")
+    return result
 
 def extract_data_from_text(text, default_year):
+    if text is None:
+        return "?", "?", "?", str(default_year)
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
     match = re.search(date_pattern, text)
     from_date = match.group(1) if match else "?"
@@ -42,10 +74,13 @@ def extract_data_from_text(text, default_year):
     var_symbol_pattern = r"Hotelový účet č.\s*(\d+)"
     var_symbol_match = re.search(var_symbol_pattern, text)
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
+    print(f"Extrahovaná data: var_symbol={variable_symbol}, from_date={from_date_cleaned}, to_date={to_date_cleaned}, year={year}")
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
 def count_special_prefixes(text, special_config):
     special_counts = {}
+    if text is None or special_config is None:
+        return special_counts
     for rule in special_config:
         pattern = rule.get("pattern")
         label = rule.get("label")
@@ -60,46 +95,35 @@ def count_special_prefixes(text, special_config):
         if count > 0:
             special_counts[label] = count
         elif re.search(pattern, text, re.DOTALL):
-            special_counts[label] = 1  # Pokud není P, ale pattern je nalezen
+            special_counts[label] = 1
         print(f"Speciální prefix '{label}' - nalezeno: {special_counts.get(label, 0)}")
-    
     return special_counts
 
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     electric_found = False
+    if text is None or config is None:
+        return prefixes_found, electric_found
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
             continue
         
-        # Hledáme počet v tabulce (formát s |)
-        matches_table = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
-        # Hledáme počet v řádku bez | (např. "Osobní automobil 7")
-        matches_line = re.findall(rf"{pattern}\s+(\d+)\s+", text, re.DOTALL)
-        
-        if matches_table:
-            prefixes_found[label] = int(matches_table[-1])  # Poslední nalezený počet z tabulky
-            print(f"Detekován prefix '{label}' s počtem z tabulky: {matches_table[-1]}")
-        elif matches_line:
-            prefixes_found[label] = int(matches_line[-1])  # Poslední nalezený počet z řádku
-            print(f"Detekován prefix '{label}' s počtem z řádku: {matches_line[-1]}")
-        elif label == "E" and re.search(pattern, text, re.DOTALL):
-            electric_found = True
-            print("Detekována elektřina: E")
-        elif re.search(pattern, text, re.DOTALL):
-            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen
-            print(f"Detekován prefix '{label}' bez počtu (nastaveno na 1)")
+        if re.search(pattern, text, re.DOTALL):
+            if label == "E":
+                electric_found = True
+                print("Detekována elektřina: E")
+            else:
+                prefixes_found[label] = 1
+                print(f"Detekován prefix '{label}' (počet ignorován)")
         else:
             print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
-    
     return prefixes_found, electric_found
 
 def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
     
-    # Speciální prefixy
     special_output = []
     for label, count in special_counts.items():
         if count > 1:
@@ -110,38 +134,34 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     if special_str:
         print(f"Speciální prefixy: {special_str}")
     
-    # Standardní prefixy
     standard_output = []
-    for label, count in standard_counts.items():
-        if count > 1:
-            standard_output.append(f"{count}{label}")
-        else:
-            standard_output.append(label)
+    for label in standard_counts.keys():
+        standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
         print(f"Standardní prefixy: {standard_str}")
     
-    # Elektřina
     electric_str = "E" if electric_found else ""
     if electric_found:
         print("Detekována elektřina: E")
     
-    # Spojení do souvislého textu
     final_output = special_str + standard_str + electric_str
     print(f"Celkový výstup prefixů: {final_output}")
     
-    # Počet tisků podle počtu prefixů ve final_output
     total_prints = 0
     for part in re.findall(r'(\d*[A-Za-z])', final_output):
+        if part == "E":
+            continue
         if part[:-1].isdigit():
-            total_prints += int(part[:-1])  # Číslo před prefixem
+            total_prints += int(part[:-1])
         else:
-            total_prints += 1  # Samotný prefix bez čísla
+            total_prints += 1
     print(f"Počet tisků určený z '{final_output}': {total_prints}")
     
     return final_output, total_prints
 
 def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
+    print(f"Vytvářím štítek: {output_path}")
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     try:
@@ -159,8 +179,10 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
         draw.text((340, 30), "E", fill="black", font=font_large)
     draw.text((10, 120), final_output, fill="black", font=font_large)
     img.save(output_path)
+    print(f"Štítek uložen: {output_path}")
 
 def print_label_with_image(image_path, printer_model, usb_path, label_type='62'):
+    print(f"Spouštím tisk štítku: {image_path}")
     try:
         image = Image.open(image_path)
         image = image.convert('1')
@@ -176,77 +198,73 @@ def print_label_with_image(image_path, printer_model, usb_path, label_type='62')
     except Exception as e:
         print(f"Chyba při tisku: {e}")
 
-class PDFHandler(FileSystemEventHandler):
-    def __init__(self, input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
-        self.input_folder = input_folder
-        self.archive_folder = archive_folder
-        self.config_path = config_path
-        self.output_dir = output_dir
-        self.printer_model = printer_model
-        self.usb_path = usb_path
-
-    def on_created(self, event):
-        if event.is_directory:
+def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path):
+    try:
+        print(f"Zpracovávám PDF: {pdf_path}")
+        if not is_file_ready(pdf_path):
+            print(f"Soubor {pdf_path} není připraven, přesouvám do archivu bez zpracování.")
+            shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
             return
-        if event.src_path.endswith(".pdf"):
-            print(f"Detekován nový PDF: {event.src_path}")
-            self.process_pdf(event.src_path)
 
-    def process_pdf(self, pdf_path):
-        try:
-            config = load_config(self.config_path)
-            text = extract_text_from_pdf(pdf_path)
-            blacklist = config.get("blacklist", [])
-            if contains_blacklisted_text(text, blacklist):
-                print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
-                shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
-                return
+        text = extract_text_from_pdf(pdf_path)
+        blacklist = config.get("blacklist") or []
+        if contains_blacklisted_text(text, blacklist):
+            print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
+            shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
+            return
 
-            default_year = config.get("year", 2024)
-            variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
-            special_counts = count_special_prefixes(text, config.get("special", []))
-            standard_counts, electric_found = find_prefix_and_percentage(text, config)
-            
-            final_output, total_prints = process_prefixes_and_output(special_counts, standard_counts, electric_found)
-            
-            combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-            create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
-            print(f"Vytvořen kombinovaný štítek: {combined_file}")
-            
-            for i in range(total_prints):
-                print_label_with_image(combined_file, self.printer_model, self.usb_path)
-                print(f"Tisk {i+1}/{total_prints} štítku: {combined_file}")
-            
-            shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
-            print(f"Přesunut {pdf_path} do archivu.")
+        default_year = config.get("year", 2024)
+        variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
+        special_counts = count_special_prefixes(text, config.get("special", []))
+        standard_counts, electric_found = find_prefix_and_percentage(text, config)
+        
+        final_output, total_prints = process_prefixes_and_output(special_counts, standard_counts, electric_found)
+        
+        combined_file = os.path.join(output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
+        create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
+        
+        for i in range(total_prints):
+            print_label_with_image(combined_file, printer_model, usb_path)
+            print(f"Tisk {i+1}/{total_prints} štítku: {combined_file}")
+        
+        shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
+        print(f"Přesunut {pdf_path} do archivu.")
 
-        except Exception as e:
-            print(f"Chyba při zpracování souboru {pdf_path}: {e}")
+    except Exception as e:
+        print(f"Chyba při zpracování souboru {pdf_path}: {e}")
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
-    event_handler = PDFHandler(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path)
-    observer = Observer()
-    observer.schedule(event_handler, input_folder, recursive=False)
-    observer.start()
+    # Kontrola existence a přístupnosti síťové složky
+    if not os.path.exists(input_folder):
+        print(f"Síťová složka {input_folder} neexistuje nebo není připojena.")
+        return
+    if not os.access(input_folder, os.R_OK):
+        print(f"Chybí oprávnění pro čtení složky {input_folder}.")
+        return
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-
-    observer.join()
-
-if __name__ == "__main__":
-    input_folder = "./data/input"
-    archive_folder = "./data/archiv"
-    config_path = "config.yaml"
-    output_dir = "./data/output-labels"
-    printer_model = 'QL-1050'
-    usb_path = '/dev/usb/lp0'
-    
-    os.makedirs(input_folder, exist_ok=True)
+    # Vytvoření lokálních složek
     os.makedirs(archive_folder, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path)
+    # Načtení konfigurace
+    config = load_config(config_path)
+
+    # Sledování složky pomocí polling
+    processed_files = set()  # Uchovává zpracované soubory, aby se nezpracovávaly opakovaně
+    print(f"Spouštím sledování síťové složky: {input_folder}")
+    try:
+        while True:
+            print(f"Kontroluji složku {input_folder}...")
+            for filename in os.listdir(input_folder):
+                if filename.endswith(".pdf"):
+                    pdf_path = os.path.join(input_folder, filename)
+                    if pdf_path not in processed_files:
+                        print(f"Detekován nový PDF: {pdf_path}")
+                        process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
+                        processed_files.add(pdf_path)
+            time.sleep(1)  # Kontrola každých 5 sekund
+    except KeyboardInterrupt:
+        print("Sledování ukončeno.")
+
+if __name__ == "__main__":
+    start_watching(INPUT_FOLDER, ARCHIVE_FOLDER, CONFIG_PATH, OUTPUT_DIR, PRINTER_MODEL, USB_PATH)
