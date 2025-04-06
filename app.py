@@ -13,13 +13,13 @@ from brother_ql.conversion import convert
 
 def load_config(config_path):
     if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file not found: {config_path}")
+        raise FileNotFoundError(f"Konfigurační soubor nenalezen: {config_path}")
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
-    
+
 def extract_text_from_pdf(pdf_path):
     if not os.path.exists(pdf_path):
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        raise FileNotFoundError(f"PDF soubor nenalezen: {pdf_path}")
     with pdfplumber.open(pdf_path) as pdf:
         text = ""
         for page in pdf.pages:
@@ -30,7 +30,6 @@ def extract_text_from_pdf(pdf_path):
 
 def contains_blacklisted_text(text, blacklist):
     return any(phrase in text for phrase in blacklist)
-
 
 def extract_data_from_text(text, default_year):
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
@@ -45,65 +44,89 @@ def extract_data_from_text(text, default_year):
     variable_symbol = var_symbol_match.group(1) if var_symbol_match else "?"
     return variable_symbol, from_date_cleaned, to_date_cleaned, year
 
-#v pdf je jsne jak by meli byt karavnay ale otazka jestli je relevanti spolechat ze to bude bez kolizi z hlediska P{neco}
-#je treba zitra se dodomluvit
-#nasledna je treba udealt tu funkci take je treba se zeptat na to jak to bude  s auty a nasledne dovytahnout a udealt prefixi
-#nalsedne terostavni s finalni implementaci s nas
-
-def find_special_prefix_and_percentage(text):
-    special_prefixes = {
-        "K": r"Karavan",
-        "E": r"Elektro",
-        "P": r"Príves",
-        "T": r"Traktor",
-        "S": r"Snímač",
-        "B": r"Benzín",
-        "D": r"Diesel"
-    }
-    prefixes_found = {}
-    for prefix, pattern in special_prefixes.items():
-        matches = re.findall(pattern, text)
-        if matches:
-            prefixes_found[prefix] = len(matches)
-    return prefixes_found
+def count_special_prefixes(text, special_config):
+    special_counts = {}
+    for rule in special_config:
+        pattern = rule.get("pattern")
+        label = rule.get("label")
+        identifier = rule.get("identifier")
+        if not pattern or not label or not identifier:
+            continue
+        
+        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+|\w+)"
+        p_matches = re.findall(p_pattern, text, re.DOTALL)
+        unique_p_values = set(p_matches)
+        count = len(unique_p_values)
+        if count > 0:
+            special_counts[label] = count
+        elif re.search(pattern, text, re.DOTALL):
+            special_counts[label] = 1  # Pokud není P, ale pattern je nalezen
+        print(f"Speciální prefix '{label}' - nalezeno: {special_counts.get(label, 0)}")
+    
+    return special_counts
 
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
-    karavan_found = False
     electric_found = False
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
             continue
-        matches = re.findall(pattern, text)
+        
+        # Hledáme počet v tabulce
+        matches = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
         if matches:
-            if label == "K":
-                karavan_found = True
-            elif label == "E":
-                electric_found = True
-            else:
-                prefixes_found[label] = len(matches)
-    return prefixes_found, karavan_found, electric_found
-
-
-#predelat funkci na pocet k karavanu aby se pocitali spravne dle pdf
-#def calculating_caravan(prefixes_foun, karavan_found, text, config):
-
-
-def process_prefixes_and_output(prefixes_found, karavan_found):
-    final_output = []
-    if karavan_found:
-        final_output.append("K")
-    for prefix, count in prefixes_found.items():
-        if count > 1:
-            final_output.append(f"{count}{prefix}")
+            prefixes_found[label] = int(matches[-1])  # Poslední nalezený počet
+            print(f"Detekován prefix '{label}' s počtem: {matches[-1]}")
+        elif label == "E" and re.search(pattern, text, re.DOTALL):
+            electric_found = True
+            print("Detekována elektřina: E")
+        elif re.search(pattern, text, re.DOTALL):
+            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen, přidáme 1
+            print(f"Detekován prefix '{label}' bez počtu (nastaveno na 1)")
         else:
-            final_output.append(prefix)
-    final_output_string = "".join(final_output)
-    return final_output_string
+            print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
+    
+    return prefixes_found, electric_found
 
-def create_combined_label(variable_symbol, from_date, to_date, prefixes, year, output_path, final_output, electric_found):
+def process_prefixes_and_output(special_counts, standard_counts, electric_found):
+    final_output = []
+    
+    # Speciální prefixy
+    special_output = []
+    for label, count in special_counts.items():
+        if count > 1:
+            special_output.append(f"{count}{label}")
+        else:
+            special_output.append(label)
+    special_str = "".join(special_output)
+    if special_str:
+        print(f"Speciální prefixy: {special_str}")
+    
+    # Standardní prefixy
+    standard_output = []
+    for label, count in standard_counts.items():
+        if count > 1:
+            standard_output.append(f"{count}{label}")
+        else:
+            standard_output.append(label)
+    standard_str = "".join(standard_output)
+    if standard_str:
+        print(f"Standardní prefixy: {standard_str}")
+    
+    # Elektřina
+    electric_str = "E" if electric_found else ""
+    if electric_found:
+        print("Detekována elektřina: E")
+    
+    # Spojení do souvislého textu
+    final_output = special_str + standard_str + electric_str
+    print(f"Celkový výstup prefixů: {final_output}")
+    
+    return final_output
+
+def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     try:
@@ -134,9 +157,9 @@ def print_label_with_image(image_path, printer_model, usb_path, label_type='62')
         qlr = BrotherQLRaster(printer_model)
         instructions = convert(qlr, [image], label=label_type, rotate='0')
         send(instructions, usb_path)
-        print(f"tisk '{image_path}' kompletni")
+        print(f"Tisk '{image_path}' dokončen")
     except Exception as e:
-        print(f"error: {e}")
+        print(f"Chyba při tisku: {e}")
 
 class PDFHandler(FileSystemEventHandler):
     def __init__(self, input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
@@ -151,7 +174,7 @@ class PDFHandler(FileSystemEventHandler):
         if event.is_directory:
             return
         if event.src_path.endswith(".pdf"):
-            print(f"New PDF detected: {event.src_path}")
+            print(f"Detekován nový PDF: {event.src_path}")
             self.process_pdf(event.src_path)
 
     def process_pdf(self, pdf_path):
@@ -160,25 +183,31 @@ class PDFHandler(FileSystemEventHandler):
             text = extract_text_from_pdf(pdf_path)
             blacklist = config.get("blacklist", [])
             if contains_blacklisted_text(text, blacklist):
-                print(f"File {pdf_path} contains blacklisted text. Moving to archive.")
+                print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
                 shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
                 return
 
-            variable_symbol, from_date, to_date, year = extract_data_from_text(text, "2024")
-            prefixes_found, karavan_found, electric_found = find_prefix_and_percentage(text, config)
-            final_output = process_prefixes_and_output(prefixes_found, karavan_found)
+            default_year = config.get("year", 2024)
+            variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
+            special_counts = count_special_prefixes(text, config.get("special", []))
+            standard_counts, electric_found = find_prefix_and_percentage(text, config)
+            
+            final_output = process_prefixes_and_output(special_counts, standard_counts, electric_found)
+            total_prints = max(sum(special_counts.values()), 1)
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
-            create_combined_label(variable_symbol, from_date, to_date, prefixes_found.keys(), year, combined_file, final_output, electric_found)
-            print(f"Combined label created: {combined_file}")
+            create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
+            print(f"Vytvořen kombinovaný štítek: {combined_file}")
             
-            print_label_with_image(combined_file, self.printer_model, self.usb_path)
+            for i in range(total_prints):
+                print_label_with_image(combined_file, self.printer_model, self.usb_path)
+                print(f"Tisk {i+1}/{total_prints} štítku: {combined_file}")
             
             shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
-            print(f"Moved {pdf_path} to archive.")
+            print(f"Přesunut {pdf_path} do archivu.")
 
         except Exception as e:
-            print(f"Error processing file {pdf_path}: {e}")
+            print(f"Chyba při zpracování souboru {pdf_path}: {e}")
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
     event_handler = PDFHandler(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path)

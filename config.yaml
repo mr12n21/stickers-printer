@@ -1,8 +1,8 @@
 prefixes:
   - pattern: "Přívěsný vozík"
     label: "V"
-  - pattern: "Stan malý"
-    label: "A"
+  - pattern: "Osobní automobil"
+    label: "B"
   - pattern: "Přípojka elektrického proudu"
     label: "E"
 
