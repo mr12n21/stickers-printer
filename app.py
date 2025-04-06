@@ -83,7 +83,7 @@ def find_prefix_and_percentage(text, config):
             electric_found = True
             print("Detekována elektřina: E")
         elif re.search(pattern, text, re.DOTALL):
-            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen, přidáme 1
+            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen
             print(f"Detekován prefix '{label}' bez počtu (nastaveno na 1)")
         else:
             print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
@@ -124,7 +124,16 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     final_output = special_str + standard_str + electric_str
     print(f"Celkový výstup prefixů: {final_output}")
     
-    return final_output
+    # Počet tisků podle počtu prefixů ve final_output
+    total_prints = 0
+    for part in re.findall(r'(\d*[A-Za-z])', final_output):
+        if part[:-1].isdigit():
+            total_prints += int(part[:-1])  # Číslo před prefixem
+        else:
+            total_prints += 1  # Samotný prefix bez čísla
+    print(f"Počet tisků určený z '{final_output}': {total_prints}")
+    
+    return final_output, total_prints
 
 def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
@@ -192,8 +201,7 @@ class PDFHandler(FileSystemEventHandler):
             special_counts = count_special_prefixes(text, config.get("special", []))
             standard_counts, electric_found = find_prefix_and_percentage(text, config)
             
-            final_output = process_prefixes_and_output(special_counts, standard_counts, electric_found)
-            total_prints = max(sum(special_counts.values()), 1)
+            final_output, total_prints = process_prefixes_and_output(special_counts, standard_counts, electric_found)
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
