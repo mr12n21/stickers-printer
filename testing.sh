@@ -52,9 +52,10 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+ExecStartPre=/bin/chmod 666 /dev/usb/lp0
 User=pracovni
-WorkingDirectory=$DEST_DIR
-ExecStart=$DEST_DIR/venv/bin/python3 $DEST_DIR/main.py
+WorkingDirectory=/home/pracovni/stickers-printer
+ExecStart=/home/pracovni/stickers-printer/venv/bin/python3 /home/pracovni/stickers-printer/main.py
 Restart=on-failure
 
 [Install]

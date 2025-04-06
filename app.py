@@ -10,10 +10,10 @@ from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
 # Globální cesty
-INPUT_FOLDER = "/mnt/data/input"
-ARCHIVE_FOLDER = "/mnt/data/archiv"
+INPUT_FOLDER = "./data/input"
+ARCHIVE_FOLDER = "./data/archiv"
 CONFIG_PATH = "config.yaml"
-OUTPUT_DIR = "/mnt/data/output-labels"
+OUTPUT_DIR = "./data/output-labels"
 PRINTER_MODEL = "QL-1050"
 USB_PATH = "/dev/usb/lp0"
 
@@ -81,6 +81,7 @@ def count_special_prefixes(text, special_config):
     special_counts = {}
     if text is None or special_config is None:
         return special_counts
+    
     for rule in special_config:
         pattern = rule.get("pattern")
         label = rule.get("label")
@@ -88,15 +89,43 @@ def count_special_prefixes(text, special_config):
         if not pattern or not label or not identifier:
             continue
         
-        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+|\w+)"
-        p_matches = re.findall(p_pattern, text, re.DOTALL)
-        unique_p_values = set(p_matches)
-        count = len(unique_p_values)
-        if count > 0:
-            special_counts[label] = count
-        elif re.search(pattern, text, re.DOTALL):
-            special_counts[label] = 1
-        print(f"Speciální prefix '{label}' - nalezeno: {special_counts.get(label, 0)}")
+        # Rozdělení textu na řádky
+        lines = text.splitlines()
+        count = 0
+        pattern_found_anywhere = False
+        
+        # Pro každý řádek
+        for line in lines:
+            # Kontrola patternu na řádku
+            pattern_found = re.search(pattern, line, re.DOTALL) is not None
+            if pattern_found:
+                pattern_found_anywhere = True
+                # Hledání P na stejném řádku
+                p_pattern = rf"(?:\b{identifier})(\d+|\w+)"
+                p_matches = re.findall(p_pattern, line)
+                unique_p_values = set(p_matches)
+                line_count = len(unique_p_values)
+                if line_count > 0:
+                    count += line_count
+                    print(f"Debug: Nalezeno {line_count} unikátních '{identifier}' na řádku s pattern: {unique_p_values}")
+        
+        # Logika přidání
+        if pattern_found_anywhere:
+            if count > 0:
+                special_counts[label] = count
+                print(f"Speciální prefix '{label}' - nalezeno v podrobném vzoru s pattern: {count}")
+            else:
+                special_counts[label] = 1
+                print(f"Speciální prefix '{label}' - nalezeno pouze v základním vzoru: 1")
+        else:
+            # Kontrola, zda existuje P bez patternu
+            p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+|\w+)"
+            p_matches = re.findall(p_pattern, text, re.DOTALL)
+            if p_matches:
+                print(f"Speciální prefix '{label}' - nalezeno P bez pattern na jiném řádku, ignorováno: {len(set(p_matches))}")
+            else:
+                print(f"Speciální prefix '{label}' - nenalezeno")
+    
     return special_counts
 
 def find_prefix_and_percentage(text, config):
