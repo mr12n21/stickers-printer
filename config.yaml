@@ -1,12 +1,23 @@
 prefixes:
+  - pattern: "Přístřešek/markýza do 9 m2"
+    label: "P"
+  - pattern: "Přístřešek/markýza nad 9 m2"
+    label: "R"
+  - pattern: "Příplatek za spaní v osobním autě (= do 1,7t)"
+    label: "T"
+  - pattern: "Příplatek za spaní v dodávce apod. (nad 1,7t)"
+    label: "U"
   - pattern: "Přívěsný vozík"
     label: "V"
-  - pattern: "Stan malý"
-    label: "A"
-  - pattern: "Přípojka elektrického proudu"
+  - pattern: "Hamaka"
+    label: "H"
+  - pattern: ""
     label: "E"
   - pattern: ""
     label: "B"
+  - pattern: ""
+    label: "E"
+
 
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
