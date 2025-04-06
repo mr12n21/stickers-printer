@@ -9,7 +9,6 @@ SMB_SHARE="stitky"
 MOUNT_POINT="/mnt/data"
 PROJECT_DIR="/home/pi/stitky"
 
-
 configure_smb_share() {
     local ip_address="$1"
     local share_name="$2"
@@ -37,12 +36,13 @@ configure_smb_share() {
     fi
 }
 
-
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root. Use sudo."
     exit 1
 fi
 
+echo "Adding user 'pi' to 'lp' group for printer access..."
+usermod -aG lp pi
 
 echo "Installing base packages..."
 apt update && apt upgrade -y
@@ -50,8 +50,8 @@ apt install -y python3 python3-pip python3-venv git || exit 1
 
 configure_smb_share "$SMB_IP" "$SMB_SHARE" "$MOUNT_POINT"
 
-
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv || exit 1
@@ -92,10 +92,10 @@ Group=pi
 WantedBy=multi-user.target
 EOF
 
+echo "Reloading and enabling systemd service..."
 systemctl daemon-reload
 systemctl enable stickers-printer.service
 systemctl start stickers-printer.service
 systemctl status stickers-printer.service --no-pager
 
 echo "Setup complete at $(date)!"
-ickers-printer
