@@ -9,11 +9,10 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
-# Globální cesty
-INPUT_FOLDER = "./data/input"
-ARCHIVE_FOLDER = "./data/archiv"
+INPUT_FOLDER = "/mnt/data/input"
+ARCHIVE_FOLDER = "/mnt/data/archiv"
 CONFIG_PATH = "config.yaml"
-OUTPUT_DIR = "./data/output-labels"
+OUTPUT_DIR = "/mnt/data/output-labels"
 PRINTER_MODEL = "QL-1050"
 USB_PATH = "/dev/usb/lp0"
 
@@ -204,14 +203,14 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         if not is_file_ready(pdf_path):
             print(f"Soubor {pdf_path} není připraven, přesouvám do archivu bez zpracování.")
             shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
-            return
+            return True
 
         text = extract_text_from_pdf(pdf_path)
         blacklist = config.get("blacklist") or []
         if contains_blacklisted_text(text, blacklist):
             print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
             shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
-            return
+            return True
 
         default_year = config.get("year", 2024)
         variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
@@ -229,38 +228,60 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         
         shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
         print(f"Přesunut {pdf_path} do archivu.")
+        return True
 
     except Exception as e:
         print(f"Chyba při zpracování souboru {pdf_path}: {e}")
+        return False
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
-    if not os.path.exists(input_folder):
-        print(f"Síťová složka {input_folder} neexistuje nebo není připojena.")
-        return
+    for folder in [input_folder, archive_folder, output_dir]:
+        try:
+            os.makedirs(folder, exist_ok=True)
+            print(f"Vytvořena složka {folder}, pokud neexistovala.")
+        except PermissionError:
+            print(f"Nemohu vytvořit složku {folder} kvůli nedostatečným oprávněním.")
+            return
+    
     if not os.access(input_folder, os.R_OK):
         print(f"Chybí oprávnění pro čtení složky {input_folder}.")
         return
+    if not os.access(input_folder, os.W_OK):
+        print(f"Chybí oprávnění pro zápis do složky {input_folder}.")
+        return
+    if not os.access(archive_folder, os.W_OK):
+        print(f"Chybí oprávnění pro zápis do složky {archive_folder}.")
+        return
+    if not os.access(output_dir, os.W_OK):
+        print(f"Chybí oprávnění pro zápis do složky {output_dir}.")
+        return
 
-    os.makedirs(archive_folder, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
-
-    config = load_config(config_path)
-
-    processed_files = set()
-    print(f"Spouštím sledování síťové složky: {input_folder}")
     try:
-        while True:
-            print(f"Kontroluji složku {input_folder}...")
+        config = load_config(config_path)
+    except Exception as e:
+        print(f"Chyba při načítání konfigurace: {e}")
+        return
+
+    print(f"Spouštím sledování síťové složky: {input_folder}")
+
+    while True:
+        print(f"Kontroluji složku {input_folder}...")
+        try:
+            found_pdf = False
             for filename in os.listdir(input_folder):
                 if filename.endswith(".pdf"):
                     pdf_path = os.path.join(input_folder, filename)
-                    if pdf_path not in processed_files:
-                        print(f"Detekován nový PDF: {pdf_path}")
-                        process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
-                        processed_files.add(pdf_path)
-            time.sleep(2)
-    except KeyboardInterrupt:
-        print("Sledování ukončeno.")
+                    print(f"Zjištěn PDF soubor: {pdf_path}")
+                    success = process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
+                    if success:
+                        found_pdf = True
+                        time.sleep(1)
+                        break
+            if not found_pdf:
+                time.sleep(2)
+        except Exception as e:
+            print(f"Chyba při kontrole složky: {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     start_watching(INPUT_FOLDER, ARCHIVE_FOLDER, CONFIG_PATH, OUTPUT_DIR, PRINTER_MODEL, USB_PATH)

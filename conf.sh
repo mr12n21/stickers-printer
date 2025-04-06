@@ -66,8 +66,7 @@ START_SCRIPT="$PROJECT_DIR/start_print_service.sh"
 echo "Creating start script..."
 cat << 'EOF' > "$START_SCRIPT"
 #!/bin/bash
-cd /home/pi/stickers-printer
-chmod 666 /dev/usb/lp0
+cd /home/pi/stitky
 source venv/bin/activate
 python3 app.py
 EOF
@@ -99,3 +98,4 @@ systemctl start stickers-printer.service
 systemctl status stickers-printer.service --no-pager
 
 echo "Setup complete at $(date)!"
+ickers-printer
