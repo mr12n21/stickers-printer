@@ -26,12 +26,16 @@ def extract_text_from_pdf(pdf_path):
             page_text = page.extract_text()
             if page_text:
                 text += page_text
-    return text
+    return text if text else ""
 
 def contains_blacklisted_text(text, blacklist):
+    if text is None or blacklist is None:
+        return False
     return any(phrase in text for phrase in blacklist)
 
 def extract_data_from_text(text, default_year):
+    if text is None:
+        return "?", "?", "?", str(default_year)
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
     match = re.search(date_pattern, text)
     from_date = match.group(1) if match else "?"
@@ -46,6 +50,8 @@ def extract_data_from_text(text, default_year):
 
 def count_special_prefixes(text, special_config):
     special_counts = {}
+    if text is None or special_config is None:
+        return special_counts
     for rule in special_config:
         pattern = rule.get("pattern")
         label = rule.get("label")
@@ -60,7 +66,7 @@ def count_special_prefixes(text, special_config):
         if count > 0:
             special_counts[label] = count
         elif re.search(pattern, text, re.DOTALL):
-            special_counts[label] = 1  # Pokud není P, ale pattern je nalezen
+            special_counts[label] = 1
         print(f"Speciální prefix '{label}' - nalezeno: {special_counts.get(label, 0)}")
     
     return special_counts
@@ -68,19 +74,20 @@ def count_special_prefixes(text, special_config):
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     electric_found = False
+    if text is None or config is None:
+        return prefixes_found, electric_found
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
             continue
         
-        # U standardních prefixů ignorujeme počet, jen detekujeme přítomnost
         if re.search(pattern, text, re.DOTALL):
             if label == "E":
                 electric_found = True
                 print("Detekována elektřina: E")
             else:
-                prefixes_found[label] = 1  # Počet se ignoruje, nastavíme 1 pro přítomnost
+                prefixes_found[label] = 1
                 print(f"Detekován prefix '{label}' (počet ignorován)")
         else:
             print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
@@ -103,7 +110,7 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     
     # Standardní prefixy (bez počtu)
     standard_output = []
-    for label in standard_counts.keys():  # Ignorujeme počet, jen přidáváme label
+    for label in standard_counts.keys():
         standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
@@ -118,9 +125,11 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     final_output = special_str + standard_str + electric_str
     print(f"Celkový výstup prefixů: {final_output}")
     
-    # Počet tisků podle počtu prefixů ve final_output
+    # Počet tisků podle počtu prefixů ve final_output, "E" se nepočítá
     total_prints = 0
     for part in re.findall(r'(\d*[A-Za-z])', final_output):
+        if part == "E":  # Ignorujeme "E"
+            continue
         if part[:-1].isdigit():
             total_prints += int(part[:-1])  # Číslo před prefixem (pouze u speciálních)
         else:
@@ -184,7 +193,7 @@ class PDFHandler(FileSystemEventHandler):
         try:
             config = load_config(self.config_path)
             text = extract_text_from_pdf(pdf_path)
-            blacklist = config.get("blacklist", [])
+            blacklist = config.get("blacklist") or []
             if contains_blacklisted_text(text, blacklist):
                 print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
                 shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
