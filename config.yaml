@@ -11,11 +11,13 @@ prefixes:
     label: "V"
   - pattern: "Hamaka"
     label: "H"
-  - pattern: ""
-    label: "E"
-  - pattern: ""
+  - pattern: "Stan malý (4 m2)"
+    label: "A"
+  - pattern: "Stan malý (4 m2)"
     label: "B"
-  - pattern: ""
+  - pattern: "Stan malý (4 m2)"
+    label: "C"
+  - pattern: "Přípojka elektrického proudu pro stany"
     label: "E"
 
 
