@@ -1,10 +1,12 @@
 prefixes:
   - pattern: "Přívěsný vozík"
     label: "V"
-  - pattern: "Osobní automobil"
-    label: "B"
+  - pattern: "Stan malý"
+    label: "A"
   - pattern: "Přípojka elektrického proudu"
     label: "E"
+  - pattern: ""
+    label: "B"
 
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
@@ -12,6 +14,6 @@ special:
     identifier: "P"
 
 blacklist:
-  - "chatka"
+  - "kafksafkhalkf"
 
 year: 2025

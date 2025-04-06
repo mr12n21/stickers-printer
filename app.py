@@ -74,23 +74,14 @@ def find_prefix_and_percentage(text, config):
         if not pattern or not label:
             continue
         
-        # Hledáme počet v tabulce (formát s |)
-        matches_table = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
-        # Hledáme počet v řádku bez | (např. "Osobní automobil 7")
-        matches_line = re.findall(rf"{pattern}\s+(\d+)\s+", text, re.DOTALL)
-        
-        if matches_table:
-            prefixes_found[label] = int(matches_table[-1])  # Poslední nalezený počet z tabulky
-            print(f"Detekován prefix '{label}' s počtem z tabulky: {matches_table[-1]}")
-        elif matches_line:
-            prefixes_found[label] = int(matches_line[-1])  # Poslední nalezený počet z řádku
-            print(f"Detekován prefix '{label}' s počtem z řádku: {matches_line[-1]}")
-        elif label == "E" and re.search(pattern, text, re.DOTALL):
-            electric_found = True
-            print("Detekována elektřina: E")
-        elif re.search(pattern, text, re.DOTALL):
-            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen
-            print(f"Detekován prefix '{label}' bez počtu (nastaveno na 1)")
+        # U standardních prefixů ignorujeme počet, jen detekujeme přítomnost
+        if re.search(pattern, text, re.DOTALL):
+            if label == "E":
+                electric_found = True
+                print("Detekována elektřina: E")
+            else:
+                prefixes_found[label] = 1  # Počet se ignoruje, nastavíme 1 pro přítomnost
+                print(f"Detekován prefix '{label}' (počet ignorován)")
         else:
             print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
     
@@ -99,7 +90,7 @@ def find_prefix_and_percentage(text, config):
 def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
     
-    # Speciální prefixy
+    # Speciální prefixy (s počtem)
     special_output = []
     for label, count in special_counts.items():
         if count > 1:
@@ -110,13 +101,10 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     if special_str:
         print(f"Speciální prefixy: {special_str}")
     
-    # Standardní prefixy
+    # Standardní prefixy (bez počtu)
     standard_output = []
-    for label, count in standard_counts.items():
-        if count > 1:
-            standard_output.append(f"{count}{label}")
-        else:
-            standard_output.append(label)
+    for label in standard_counts.keys():  # Ignorujeme počet, jen přidáváme label
+        standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
         print(f"Standardní prefixy: {standard_str}")
@@ -134,7 +122,7 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     total_prints = 0
     for part in re.findall(r'(\d*[A-Za-z])', final_output):
         if part[:-1].isdigit():
-            total_prints += int(part[:-1])  # Číslo před prefixem
+            total_prints += int(part[:-1])  # Číslo před prefixem (pouze u speciálních)
         else:
             total_prints += 1  # Samotný prefix bez čísla
     print(f"Počet tisků určený z '{final_output}': {total_prints}")
