@@ -16,7 +16,7 @@ def load_config(config_path):
         raise FileNotFoundError(f"Konfigurační soubor nenalezen: {config_path}")
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
-    
+
 def extract_text_from_pdf(pdf_path):
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF soubor nenalezen: {pdf_path}")
@@ -59,29 +59,40 @@ def count_special_prefixes(text, special_config):
         count = len(unique_p_values)
         if count > 0:
             special_counts[label] = count
+        elif re.search(pattern, text, re.DOTALL):
+            special_counts[label] = 1  # Pokud není P, ale pattern je nalezen
+        print(f"Speciální prefix '{label}' - nalezeno: {special_counts.get(label, 0)}")
     
     return special_counts
 
-def count_standard_prefixes(text, prefixes_config):
+def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     electric_found = False
-    
-    for rule in prefixes_config:
+    for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
             continue
         
-        if label == "E":
-            # Elektřina se jen detekuje, ignorujeme "Počet"
-            if re.search(pattern, text, re.DOTALL):
-                electric_found = True
+        # Hledáme počet v tabulce (formát s |)
+        matches_table = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
+        # Hledáme počet v řádku bez | (např. "Osobní automobil 7")
+        matches_line = re.findall(rf"{pattern}\s+(\d+)\s+", text, re.DOTALL)
+        
+        if matches_table:
+            prefixes_found[label] = int(matches_table[-1])  # Poslední nalezený počet z tabulky
+            print(f"Detekován prefix '{label}' s počtem z tabulky: {matches_table[-1]}")
+        elif matches_line:
+            prefixes_found[label] = int(matches_line[-1])  # Poslední nalezený počet z řádku
+            print(f"Detekován prefix '{label}' s počtem z řádku: {matches_line[-1]}")
+        elif label == "E" and re.search(pattern, text, re.DOTALL):
+            electric_found = True
+            print("Detekována elektřina: E")
+        elif re.search(pattern, text, re.DOTALL):
+            prefixes_found[label] = 1  # Pokud není počet, ale pattern je nalezen
+            print(f"Detekován prefix '{label}' bez počtu (nastaveno na 1)")
         else:
-            # Ostatní prefixy berou "Počet" z každého řádku
-            matches = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
-            if matches:
-                # Ukládáme poslední nalezený počet pro daný prefix
-                prefixes_found[label] = int(matches[-1])
+            print(f"Prefix '{label}' nenalezen pro pattern: {pattern}")
     
     return prefixes_found, electric_found
 
@@ -89,24 +100,46 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     final_output = []
     
     # Speciální prefixy
+    special_output = []
     for label, count in special_counts.items():
         if count > 1:
-            final_output.append(f"{count}{label}")
+            special_output.append(f"{count}{label}")
         else:
-            final_output.append(label)
+            special_output.append(label)
+    special_str = "".join(special_output)
+    if special_str:
+        print(f"Speciální prefixy: {special_str}")
     
-    # Standardní prefixy (kromě E)
+    # Standardní prefixy
+    standard_output = []
     for label, count in standard_counts.items():
         if count > 1:
-            final_output.append(f"{count}{label}")
+            standard_output.append(f"{count}{label}")
         else:
-            final_output.append(label)
+            standard_output.append(label)
+    standard_str = "".join(standard_output)
+    if standard_str:
+        print(f"Standardní prefixy: {standard_str}")
     
-    # Přidání "E" pro elektřinu
+    # Elektřina
+    electric_str = "E" if electric_found else ""
     if electric_found:
-        final_output.append("E")
+        print("Detekována elektřina: E")
     
-    return "".join(final_output)
+    # Spojení do souvislého textu
+    final_output = special_str + standard_str + electric_str
+    print(f"Celkový výstup prefixů: {final_output}")
+    
+    # Počet tisků podle počtu prefixů ve final_output
+    total_prints = 0
+    for part in re.findall(r'(\d*[A-Za-z])', final_output):
+        if part[:-1].isdigit():
+            total_prints += int(part[:-1])  # Číslo před prefixem
+        else:
+            total_prints += 1  # Samotný prefix bez čísla
+    print(f"Počet tisků určený z '{final_output}': {total_prints}")
+    
+    return final_output, total_prints
 
 def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
@@ -127,7 +160,6 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
     draw.text((10, 120), final_output, fill="black", font=font_large)
     img.save(output_path)
 
-"""
 def print_label_with_image(image_path, printer_model, usb_path, label_type='62'):
     try:
         image = Image.open(image_path)
@@ -142,8 +174,7 @@ def print_label_with_image(image_path, printer_model, usb_path, label_type='62')
         send(instructions, usb_path)
         print(f"Tisk '{image_path}' dokončen")
     except Exception as e:
-        print(f"Chyba: {e}")
-"""
+        print(f"Chyba při tisku: {e}")
 
 class PDFHandler(FileSystemEventHandler):
     def __init__(self, input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
@@ -171,19 +202,20 @@ class PDFHandler(FileSystemEventHandler):
                 shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
                 return
 
-            variable_symbol, from_date, to_date, year = extract_data_from_text(text, "2024")
+            default_year = config.get("year", 2024)
+            variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
             special_counts = count_special_prefixes(text, config.get("special", []))
-            standard_counts, electric_found = count_standard_prefixes(text, config.get("prefixes", []))
+            standard_counts, electric_found = find_prefix_and_percentage(text, config)
             
-            final_output = process_prefixes_and_output(special_counts, standard_counts, electric_found)
-            total_prints = max(sum(special_counts.values()), 1)
+            final_output, total_prints = process_prefixes_and_output(special_counts, standard_counts, electric_found)
             
             combined_file = os.path.join(self.output_dir, f"{variable_symbol.replace(' ', '_')}_combined_label.png")
             create_combined_label(variable_symbol, from_date, to_date, year, combined_file, final_output, electric_found)
             print(f"Vytvořen kombinovaný štítek: {combined_file}")
             
             for i in range(total_prints):
-                print(f"Simulovaný tisk {i+1}/{total_prints} štítku: {combined_file}")
+                print_label_with_image(combined_file, self.printer_model, self.usb_path)
+                print(f"Tisk {i+1}/{total_prints} štítku: {combined_file}")
             
             shutil.move(pdf_path, os.path.join(self.archive_folder, os.path.basename(pdf_path)))
             print(f"Přesunut {pdf_path} do archivu.")

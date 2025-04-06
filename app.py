@@ -74,11 +74,17 @@ def find_prefix_and_percentage(text, config):
         if not pattern or not label:
             continue
         
-        # Hledáme počet v tabulce
-        matches = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
-        if matches:
-            prefixes_found[label] = int(matches[-1])  # Poslední nalezený počet
-            print(f"Detekován prefix '{label}' s počtem: {matches[-1]}")
+        # Hledáme počet v tabulce (formát s |)
+        matches_table = re.findall(rf"{pattern}.*?\|\s*(\d+)\s*\|", text, re.DOTALL)
+        # Hledáme počet v řádku bez | (např. "Osobní automobil 7")
+        matches_line = re.findall(rf"{pattern}\s+(\d+)\s+", text, re.DOTALL)
+        
+        if matches_table:
+            prefixes_found[label] = int(matches_table[-1])  # Poslední nalezený počet z tabulky
+            print(f"Detekován prefix '{label}' s počtem z tabulky: {matches_table[-1]}")
+        elif matches_line:
+            prefixes_found[label] = int(matches_line[-1])  # Poslední nalezený počet z řádku
+            print(f"Detekován prefix '{label}' s počtem z řádku: {matches_line[-1]}")
         elif label == "E" and re.search(pattern, text, re.DOTALL):
             electric_found = True
             print("Detekována elektřina: E")
