@@ -9,7 +9,6 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
-# Globální cesty
 INPUT_FOLDER = "/mnt/data/input"
 ARCHIVE_FOLDER = "/mnt/data/archiv"
 CONFIG_PATH = "config.yaml"
@@ -141,7 +140,6 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     if standard_str:
         print(f"Standardní prefixy: {standard_str}")
 
-    # NEzahrnujeme "E" do final_output – bude zobrazena nahoře, pokud electric_found=True
     final_output = special_str + standard_str
     print(f"Celkový výstup prefixů (bez E): {final_output}")
 

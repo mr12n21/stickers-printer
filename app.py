@@ -9,7 +9,6 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
-# Globální cesty
 INPUT_FOLDER = "/mnt/data/input"
 ARCHIVE_FOLDER = "/mnt/data/archiv"
 CONFIG_PATH = "config.yaml"
@@ -234,7 +233,6 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         print(f"Chyba při zpracování souboru {pdf_path}: {e}")
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
-    # Vytvoření potřebných složek, pokud neexistují
     for folder in [input_folder, archive_folder, output_dir]:
         try:
             os.makedirs(folder, exist_ok=True)
@@ -242,8 +240,7 @@ def start_watching(input_folder, archive_folder, config_path, output_dir, printe
         except PermissionError:
             print(f"Nemohu vytvořit složku {folder} kvůli nedostatečným oprávněním.")
             return
-    
-    # Kontrola oprávnění pro čtení a zápis
+
     if not os.access(input_folder, os.R_OK):
         print(f"Chybí oprávnění pro čtení složky {input_folder}.")
         return
@@ -257,7 +254,6 @@ def start_watching(input_folder, archive_folder, config_path, output_dir, printe
         print(f"Chybí oprávnění pro zápis do složky {output_dir}.")
         return
 
-    # Načtení konfigurace
     try:
         config = load_config(config_path)
     except Exception as e:
@@ -266,7 +262,7 @@ def start_watching(input_folder, archive_folder, config_path, output_dir, printe
 
     print(f"Spouštím sledování síťové složky: {input_folder}")
 
-    while True:  # Hlavní smyčka
+    while True:
         print(f"Kontroluji složku {input_folder}...")
         try:
             found_pdf = False
@@ -277,10 +273,10 @@ def start_watching(input_folder, archive_folder, config_path, output_dir, printe
                     success = process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb_path)
                     if success:
                         found_pdf = True
-                        time.sleep(1)  # Krátká pauza po zpracování jednoho PDF
-                        break  # Po zpracování jednoho PDF jdeme znovu projít složku
+                        time.sleep(1)
+                        break
             if not found_pdf:
-                time.sleep(2)  # Pokud nebyl nalezen žádný nový PDF, čekáme déle
+                time.sleep(2)
         except Exception as e:
             print(f"Chyba při kontrole složky: {e}")
             time.sleep(5)
