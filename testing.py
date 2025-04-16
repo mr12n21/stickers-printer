@@ -9,7 +9,6 @@ from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send
 from brother_ql.conversion import convert
 
-#setup for printer
 INPUT_FOLDER = "/mnt/data/input"
 ARCHIVE_FOLDER = "/mnt/data/archiv"
 CONFIG_PATH = "config.yaml"
@@ -17,8 +16,6 @@ OUTPUT_DIR = "/mnt/data/output-labels"
 PRINTER_MODEL = "QL-1050"
 USB_PATH = "/dev/usb/lp0"
 
-
-#nacteni konfigurace
 def load_config(config_path):
     print(f"Načítám konfiguraci z: {config_path}")
     if not os.path.exists(config_path):
@@ -28,7 +25,6 @@ def load_config(config_path):
     print(f"Konfigurace načtena: {config}")
     return config
 
-#kontrola pdf
 def is_file_ready(file_path, timeout=10):
     print(f"Kontroluji připravenost souboru: {file_path}")
     start_time = time.time()
@@ -44,7 +40,6 @@ def is_file_ready(file_path, timeout=10):
     print(f"Timeout: Soubor {file_path} není připraven po {timeout} sekundách.")
     return False
 
-#extrakce textu z pdf
 def extract_text_from_pdf(pdf_path):
     print(f"Extrahuji text z: {pdf_path}")
     if not os.path.exists(pdf_path):
@@ -164,7 +159,6 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     
     return final_output, total_prints
 
-#vytvoreni outputu
 def create_combined_label(variable_symbol, from_date, to_date, year, output_path, final_output, electric_found):
     print(f"Vytvářím štítek: {output_path}")
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
@@ -209,14 +203,14 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         if not is_file_ready(pdf_path):
             print(f"Soubor {pdf_path} není připraven, přesouvám do archivu bez zpracování.")
             shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
-            return
+            return True
 
         text = extract_text_from_pdf(pdf_path)
         blacklist = config.get("blacklist") or []
         if contains_blacklisted_text(text, blacklist):
             print(f"Soubor {pdf_path} obsahuje zakázaný text. Přesouvám do archivu.")
             shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
-            return
+            return True
 
         default_year = config.get("year", 2024)
         variable_symbol, from_date, to_date, year = extract_data_from_text(text, default_year)
@@ -234,9 +228,11 @@ def process_pdf(pdf_path, config, archive_folder, output_dir, printer_model, usb
         
         shutil.move(pdf_path, os.path.join(archive_folder, os.path.basename(pdf_path)))
         print(f"Přesunut {pdf_path} do archivu.")
+        return True
 
     except Exception as e:
         print(f"Chyba při zpracování souboru {pdf_path}: {e}")
+        return False
 
 def start_watching(input_folder, archive_folder, config_path, output_dir, printer_model, usb_path):
     for folder in [input_folder, archive_folder, output_dir]:
@@ -246,7 +242,7 @@ def start_watching(input_folder, archive_folder, config_path, output_dir, printe
         except PermissionError:
             print(f"Nemohu vytvořit složku {folder} kvůli nedostatečným oprávněním.")
             return
-
+    
     if not os.access(input_folder, os.R_OK):
         print(f"Chybí oprávnění pro čtení složky {input_folder}.")
         return
