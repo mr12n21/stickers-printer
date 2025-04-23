@@ -52,6 +52,9 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+
+tato opravace vyzaduje root prava!!!!!!!!!!!!!!!!!!!!!!!!!!! musi se to udealt a spouste vzdy po startu jako root ale jen ta oprace pro chmod
+
 ExecStartPre=/bin/chmod 666 /dev/usb/lp0
 User=pracovni
 WorkingDirectory=/home/pracovni/stickers-printer
