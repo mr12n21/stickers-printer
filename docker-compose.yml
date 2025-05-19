@@ -1,0 +1,22 @@
+services:
+  samba:
+    image: samba:latest
+    container_name: samba_server
+    command: -s "share;/share;yes;no;yes" -p
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      - "445:445/tcp"
+    volumes:
+      - samba_data:/share
+    restart: unless-stopped
+    network_mode: host
+
+volumes:
+  samba_data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=5g,uid=65534,gid=65534
