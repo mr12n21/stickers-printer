@@ -2,7 +2,7 @@ services:
   samba:
     image: samba:latest
     container_name: samba_server
-    command: -s "share;/share;yes;no;yes" -p
+    command: -s "public;/share;yes;no;yes" -p
     ports:
       - "137:137/udp"
       - "138:138/udp"
@@ -12,6 +12,7 @@ services:
       - samba_data:/share
     restart: unless-stopped
     network_mode: host
+    privileged: true
 
 volumes:
   samba_data:
