@@ -1,23 +1,40 @@
+version: '3.8'
+
 services:
-  samba:
-    image: samba:latest
-    container_name: samba_server
-    command: -s "public;/share;yes;no;yes" -p
-    ports:
-      - "137:137/udp"
-      - "138:138/udp"
-      - "139:139/tcp"
-      - "445:445/tcp"
+  smb-server:
+    image: ubuntu:22.04
+    container_name: smb-server
     volumes:
-      - samba_data:/share
-    restart: unless-stopped
-    network_mode: host
-    privileged: true
+      - smb_data:/shared
+      - ./smb.conf:/etc/samba/smb.conf
+      - ./entrypoint.sh:/entrypoint.sh
+    ports:
+      - "137-139:137-139"
+      - "445:445"
+    command: /bin/bash /entrypoint.sh
+    networks:
+      - app-network
+
+  python-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    container_name: python-service
+    volumes:
+      - smb_data:/mnt/shared
+    depends_on:
+      - smb-server
+    networks:
+      - app-network
+    environment:
+      - SMB_HOST=smb-server
+      - SMB_SHARE=shared
+      - SMB_USER=user
+      - SMB_PASSWORD=password
 
 volumes:
-  samba_data:
-    driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: size=5g,uid=65534,gid=65534
+  smb_data:
+
+networks:
+  app-network:
+    driver: bridge
