@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  smb-server:
+  ftp-server:
     image: ubuntu:22.04
-    container_name: smb-server
+    container_name: ftp-server
     volumes:
-      - smb_data:/shared
-      - ./smb.conf:/etc/samba/smb.conf
+      - ftp_data:/shared
+      - ./vsftpd.conf:/etc/vsftpd.conf
       - ./entrypoint.sh:/entrypoint.sh
     ports:
-      - "137-139:137-139"
-      - "445:445"
+      - "21:21"
+      - "30000-30009:30000-30009"
     command: /bin/bash /entrypoint.sh
     healthcheck:
-      test: ["CMD", "smbclient", "-L", "localhost", "-U", "user%password"]
+      test: ["CMD", "nc", "-z", "localhost", "21"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -26,23 +26,22 @@ services:
       dockerfile: Dockerfile.python
     container_name: python-service
     volumes:
-      - smb_data:/mnt/shared
+      - ftp_data:/mnt/shared
     devices:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
-      smb-server:
+      ftp-server:
         condition: service_healthy
     networks:
       - app-network
     environment:
-      - SMB_HOST=smb-server
-      - SMB_SHARE=shared
-      - SMB_USER=user
-      - SMB_PASSWORD=password
+      - FTP_HOST=ftp-server
+      - FTP_USER=user
+      - FTP_PASSWORD=password
     privileged: true
 
 volumes:
-  smb_data:
+  ftp_data:
 
 networks:
   app-network:
