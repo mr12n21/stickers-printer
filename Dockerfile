@@ -1,12 +1,3 @@
-FROM alpine:3.12.0
+FROM python:3.9-slim
 
-RUN apk add --no-cache --update \
-    samba-common-tools \
-    samba-client \
-    samba-server
-
-COPY smb.conf /etc/samba/smb.conf
-
-EXPOSE 139/tcp 445/tcp
-
-CMD ["smbd", "--foreground", "--log-stdout", "--no-process-group"]
+WORKDIR /app COPY requirements.txt . RUN pip install --no-cache-dir -r requirements.txt COPY printer_service.py . CMD ["python", "printer_service.py"]
