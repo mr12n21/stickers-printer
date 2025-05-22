@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   ftp-server:
     image: ubuntu:22.04
     container_name: ftp-server
     volumes:
-      - ftp_data:/shared
+      - ftp-data:/shared
       - ./vsftpd.conf:/etc/vsftpd.conf
       - ./entrypoint.sh:/entrypoint.sh
     ports:
@@ -26,7 +24,7 @@ services:
       dockerfile: Dockerfile.python
     container_name: python-service
     volumes:
-      - ftp_data:/mnt/shared
+      - ftp-data:/mnt/shared
     devices:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
@@ -41,7 +39,8 @@ services:
     privileged: true
 
 volumes:
-  ftp_data:
+  ftp-data:
+    name: ftp-data
 
 networks:
   app-network:
