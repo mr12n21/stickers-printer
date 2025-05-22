@@ -12,6 +12,11 @@ services:
       - "137-139:137-139"
       - "445:445"
     command: /bin/bash /entrypoint.sh
+    healthcheck:
+      test: ["CMD", "smbclient", "-L", "localhost", "-U", "user%password"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - app-network
 
@@ -22,8 +27,11 @@ services:
     container_name: python-service
     volumes:
       - smb_data:/mnt/shared
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
     depends_on:
-      - smb-server
+      smb-server:
+        condition: service_healthy
     networks:
       - app-network
     environment:
@@ -31,6 +39,7 @@ services:
       - SMB_SHARE=shared
       - SMB_USER=user
       - SMB_PASSWORD=password
+    privileged: true
 
 volumes:
   smb_data:
