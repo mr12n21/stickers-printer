@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./pdf_labeler:/app/pdf_labeler
+      - ./config.yaml:/app/config.yaml
+      - /dev/usb:/dev/usb
+    devices:
+      - /dev/usb/lp0:/dev/usb/lp0
+    environment:
+      - FLASK_ENV=production

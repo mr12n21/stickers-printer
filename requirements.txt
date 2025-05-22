@@ -1,6 +1,5 @@
-reportlab
-brother_ql
-Pillow
-pdfplumber
-PyYAML
-watchdog
+flask==2.0.1
+pdfplumber==0.7.4
+Pillow==9.2.0
+brother_ql==0.9.4
+pyyaml==6.0
