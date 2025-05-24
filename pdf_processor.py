@@ -5,6 +5,8 @@ import pdfplumber
 from PIL import Image, ImageDraw, ImageFont
 import logging
 from printer import print_label_with_image
+import json
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -143,13 +145,16 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
     logger.info(f"Creating label: {output_path}")
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
+
+    # Inicializace výchozích fontů
+    font_year = font_large = font_medium = ImageFont.load_default()
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 240)
         font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 110)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
     except IOError:
-        font_large = font_medium = ImageFont.load_default()
-        logger.warning("Failed to load fonts, using default.")
+        logger.warning("Failed to load DejaVuSans-Bold font, using default font.")
+
     year_short = year[-2:]
     draw.text((280, 0), f"{year_short}", fill="#bfbfbf", font=font_year)
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
@@ -160,6 +165,27 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
     draw.text((10, 120), final_output, fill="black", font=font_large)
     img.save(output_path)
     logger.info(f"Label saved: {output_path}")
+
+def save_to_local(data, image_path, saved_labels_dir, test_mode):
+    if not test_mode:
+        logger.info("Not in test mode, skipping local save.")
+        return
+
+    os.makedirs(saved_labels_dir, exist_ok=True)
+    timestamp = int(time.time())
+    file_name = f"label_{data['variable_symbol']}_{timestamp}"
+
+    # Uložit data jako JSON
+    json_path = os.path.join(saved_labels_dir, f"{file_name}.json")
+    with open(json_path, 'w') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+    logger.info(f"Saved data to local: {json_path}")
+
+    # Uložit PNG štítek
+    if image_path and os.path.exists(image_path):
+        png_path = os.path.join(saved_labels_dir, f"{file_name}.png")
+        shutil.copy(image_path, png_path)
+        logger.info(f"Saved image to local: {png_path}")
 
 def process_pdf(pdf_path, config, output_dir, test_mode):
     try:
@@ -183,6 +209,20 @@ def process_pdf(pdf_path, config, output_dir, test_mode):
 
         output_file = os.path.join(output_dir, f"label_{int(time.time())}.png" if test_mode else "label.png")
         create_combined_label(variable_symbol, from_date, to_date, year, output_file, final_output, electric_found)
+
+        # Uložit data lokálně v testovacím režimu
+        if test_mode:
+            saved_labels_dir = config.get("saved_labels_dir", "/app/saved_labels")
+            data_to_save = {
+                "variable_symbol": variable_symbol,
+                "from_date": from_date,
+                "to_date": to_date,
+                "year": year,
+                "final_output": final_output,
+                "electric_found": electric_found,
+                "total_prints": total_prints
+            }
+            save_to_local(data_to_save, output_file, saved_labels_dir, test_mode)
 
         if total_prints > 0:
             print_label_with_image(output_file, test_mode, total_prints)
