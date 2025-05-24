@@ -9,9 +9,11 @@ services:
     volumes:
       - ./pdf_labeler:/app/pdf_labeler
       - ./config.yaml:/app/config.yaml
+      - ./saved_labels:/app/saved_labels # Mapování lokálního adresáře
       - /dev/usb:/dev/usb
     devices:
       - /dev/usb/lp0:/dev/usb/lp0
     environment:
       - FLASK_ENV=production
+      - TEST_MODE=true # Povolit testovací režim pro testování
     privileged: true
