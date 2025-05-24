@@ -20,7 +20,6 @@ prefixes:
   - pattern: "Přípojka elektrického proudu pro stany"
     label: "E"
 
-
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     label: "K"
