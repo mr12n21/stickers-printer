@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   app:
     build:
@@ -14,3 +14,5 @@ services:
       - /dev/usb/lp0:/dev/usb/lp0
     environment:
       - FLASK_ENV=production
+    privileged: true
+    user: root
