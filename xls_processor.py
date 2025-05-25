@@ -1,7 +1,7 @@
 import time
 import os
 import re
-import pdfplumber
+import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import logging
 from printer import print_label_with_image
@@ -25,18 +25,23 @@ def is_file_ready(file_path, timeout=10):
     logger.error(f"Timeout: File {file_path} not ready after {timeout} seconds.")
     return False
 
-def extract_text_from_pdf(pdf_path):
-    logger.info(f"Extracting text from: {pdf_path}")
-    if not os.path.exists(pdf_path):
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    with pdfplumber.open(pdf_path) as pdf:
-        text = ""
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text
-        logger.info(f"Extracted text from {pdf_path}: {text[:100]}...")
-    return text if text else ""
+def extract_text_from_xls(xls_path):
+    logger.info(f"Extracting text from: {xls_path}")
+    if not os.path.exists(xls_path):
+        raise FileNotFoundError(f"XLS file not found: {xls_path}")
+    try:
+        df = pd.read_excel(xls_path, engine='openpyxl')
+        text = df.to_string(index=False)
+        logger.info(f"Full extracted text from {xls_path}:\n{text}")
+        # Uložit text pro debugování
+        debug_path = os.path.join(os.path.dirname(xls_path), "extracted_text.txt")
+        with open(debug_path, 'w', encoding='utf-8') as f:
+            f.write(text)
+        logger.info(f"Extracted text saved to: {debug_path}")
+        return text if text else ""
+    except Exception as e:
+        logger.error(f"Error reading XLS file {xls_path}: {e}")
+        return ""
 
 def contains_blacklisted_text(text, blacklist):
     if text is None or blacklist is None:
@@ -71,15 +76,16 @@ def count_special_prefixes(text, special_config):
         identifier = rule.get("identifier")
         if not pattern or not label or not identifier:
             continue
-        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+|\w+)"
+        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
+        logger.info(f"Testing pattern for '{label}': {p_pattern}")
         p_matches = re.findall(p_pattern, text, re.DOTALL)
         unique_p_values = set(p_matches)
         count = len(unique_p_values)
         if count > 0:
             special_counts[label] = count
-        elif re.search(pattern, text, re.DOTALL):
-            special_counts[label] = 1
-        logger.info(f"Special prefix '{label}' - found: {special_counts.get(label, 0)}")
+            logger.info(f"Special prefix '{label}' - found: {count} (matched identifiers: {unique_p_values})")
+        else:
+            logger.info(f"Special prefix '{label}' - no identifier matches for pattern: {p_pattern}")
     return special_counts
 
 def find_prefix_and_percentage(text, config):
@@ -184,17 +190,17 @@ def save_to_local(data, image_path, saved_labels_dir, test_mode):
         shutil.copy(image_path, png_path)
         logger.info(f"Saved image to local: {png_path}")
 
-def process_pdf(pdf_path, config, output_dir, test_mode):
+def process_xls(xls_path, config, output_dir, test_mode):
     try:
-        logger.info(f"Processing PDF: {pdf_path}")
-        if not is_file_ready(pdf_path):
-            logger.error(f"File {pdf_path} not ready.")
+        logger.info(f"Processing XLS: {xls_path}")
+        if not is_file_ready(xls_path):
+            logger.error(f"File {xls_path} not ready.")
             return None
 
-        text = extract_text_from_pdf(pdf_path)
+        text = extract_text_from_xls(xls_path)
         blacklist = config.get("blacklist") or []
         if contains_blacklisted_text(text, blacklist):
-            logger.info(f"File {pdf_path} contains blacklisted text.")
+            logger.info(f"File {xls_path} contains blacklisted text.")
             return None
 
         default_year = config.get("year", 2025)
@@ -226,5 +232,5 @@ def process_pdf(pdf_path, config, output_dir, test_mode):
         return output_file
 
     except Exception as e:
-        logger.error(f"Error processing file {pdf_path}: {e}")
+        logger.error(f"Error processing file {xls_path}: {e}")
         return None
