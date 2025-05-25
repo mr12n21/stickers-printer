@@ -8,7 +8,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Suppress brother_ql deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="brother_ql")
 
 PRINTER_MODEL = "QL-1050"

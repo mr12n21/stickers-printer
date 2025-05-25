@@ -15,5 +15,5 @@ services:
       - /dev/usb/lp0:/dev/usb/lp0
     environment:
       - FLASK_ENV=production
-      - TEST_MODE=true # Povolit testovací režim pro testování
+      - TEST_MODE=true
     privileged: true
