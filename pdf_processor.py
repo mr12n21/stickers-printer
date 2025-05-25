@@ -146,7 +146,6 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
     img = Image.new("RGB", (600, 250), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # Inicializace výchozích fontů
     font_year = font_large = font_medium = ImageFont.load_default()
     try:
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 240)
@@ -175,13 +174,11 @@ def save_to_local(data, image_path, saved_labels_dir, test_mode):
     timestamp = int(time.time())
     file_name = f"label_{data['variable_symbol']}_{timestamp}"
 
-    # Uložit data jako JSON
     json_path = os.path.join(saved_labels_dir, f"{file_name}.json")
     with open(json_path, 'w') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
     logger.info(f"Saved data to local: {json_path}")
 
-    # Uložit PNG štítek
     if image_path and os.path.exists(image_path):
         png_path = os.path.join(saved_labels_dir, f"{file_name}.png")
         shutil.copy(image_path, png_path)
@@ -210,7 +207,6 @@ def process_pdf(pdf_path, config, output_dir, test_mode):
         output_file = os.path.join(output_dir, f"label_{int(time.time())}.png" if test_mode else "label.png")
         create_combined_label(variable_symbol, from_date, to_date, year, output_file, final_output, electric_found)
 
-        # Uložit data lokálně v testovacím režimu
         if test_mode:
             saved_labels_dir = config.get("saved_labels_dir", "/app/saved_labels")
             data_to_save = {

@@ -24,6 +24,18 @@ special:
     label: "K"
     identifier: "P"
 
+  - pattern: "(Střední stan)"
+    label: "B"
+    identifier: "SS"
+  
+  - pattern: "(Velký stan)"
+    label: "C"
+    identifier: "VS"
+  
+  - pattern: "(Malý stan)"
+    label: "A"
+    identifier: "MS"
+
 blacklist:
   - "kafksafkhalkf"
 

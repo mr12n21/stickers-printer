@@ -6,16 +6,13 @@ from config_loader import load_config
 
 app = Flask(__name__)
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
 CONFIG_PATH = "/app/config.yaml"
 TEMP_DIR = "/app/temp"
 TEST_MODE = os.getenv("TEST_MODE", "False").lower() == "true"
 
-# Ensure temp directory exists
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 @app.route('/upload', methods=['POST'])
@@ -32,18 +29,14 @@ def upload_pdf():
             logger.error("File is not a PDF")
             return jsonify({"error": "File must be a PDF"}), 400
 
-        # Save PDF temporarily, overwriting any existing file
         pdf_path = os.path.join(TEMP_DIR, "temp.pdf")
         file.save(pdf_path)
         logger.info(f"PDF saved temporarily: {pdf_path}")
 
-        # Load config
         config = load_config(CONFIG_PATH)
 
-        # Process PDF and generate label
         output_file = process_pdf(pdf_path, config, TEMP_DIR, TEST_MODE)
 
-        # Delete the temporary PDF
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
             logger.info(f"Temporary PDF deleted: {pdf_path}")
