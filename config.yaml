@@ -19,7 +19,6 @@ prefixes:
     label: "C"
   - pattern: "Přípojka elektrického proudu pro stany"
     label: "E"
-
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     label: "K"
@@ -32,14 +31,11 @@ special:
   - pattern: "(Velký stan)"
     label: "C"
     identifier: "VS"
-
   - pattern: "(Malý stan)"
     label: "A"
     identifier: "MS"
-
 blacklist:
   - "kafksafkhalkf"
 
 year: 2025
-
-saved_labels_dir: "/app/saved_labels"
+test_mode: False
