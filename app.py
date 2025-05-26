@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = "config.yaml"
-TEMP_DIR = "/temp"
+TEMP_DIR = "temp"
 TEST_MODE = os.getenv("TEST_MODE", "False").lower() == "true"
 
 os.makedirs(TEMP_DIR, exist_ok=True)

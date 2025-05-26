@@ -33,7 +33,6 @@ def extract_text_from_xls(xls_path):
         df = pd.read_excel(xls_path, engine='openpyxl')
         text = df.to_string(index=False)
         logger.info(f"Full extracted text from {xls_path}:\n{text}")
-        # Uložit text pro debugování
         debug_path = os.path.join(os.path.dirname(xls_path), "extracted_text.txt")
         with open(debug_path, 'w', encoding='utf-8') as f:
             f.write(text)
@@ -157,6 +156,7 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 240)
         font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 110)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
+
     except IOError:
         logger.warning("Failed to load DejaVuSans-Bold font, using default font.")
 

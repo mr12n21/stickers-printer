@@ -3,6 +3,6 @@ brother_ql
 Pillow
 pandas
 openpyxl
-PyYAML
+pyyaml
 watchdog
 flask
