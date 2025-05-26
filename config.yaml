@@ -3,10 +3,6 @@ prefixes:
     label: "P"
   - pattern: "Přístřešek/markýza nad 9 m2"
     label: "R"
-  - pattern: "Příplatek za spaní v osobním autě (= do 1,7t)"
-    label: "T"
-  - pattern: "Příplatek za spaní v dodávce apod. (nad 1,7t)"
-    label: "U"
   - pattern: "Přívěsný vozík"
     label: "V"
   - pattern: "Hamaka"
@@ -19,23 +15,32 @@ prefixes:
     label: "C"
   - pattern: "Přípojka elektrického proudu pro stany"
     label: "E"
+  - pattern: "Příplatek za spaní v dodávce apod"
+    label: "U"
 special:
   - pattern: "(Stání pro karavan|obytný přívěs|mikrobus|nákladní auto)"
     label: "K"
     identifier: "P"
-
+  - pattern: "(1x Karavan mimo stání, termín)"
+    label: "L"
+    identifier: "KMS"
   - pattern: "(Střední stan)"
     label: "B"
     identifier: "SS"
-
   - pattern: "(Velký stan)"
     label: "C"
     identifier: "VS"
   - pattern: "(Malý stan)"
     label: "A"
     identifier: "MS"
+  - pattern: "(Spaní v autě, termín:)"
+    label: "T"
+    identifier: "SvA"
+
 blacklist:
   - "kafksafkhalkf"
 
 year: 2025
-test_mode: False
+
+
+test_mode: False 
