@@ -69,22 +69,35 @@ def count_special_prefixes(text, special_config):
     special_counts = {}
     if text is None or special_config is None:
         return special_counts
+    
     for rule in special_config:
         pattern = rule.get("pattern")
         label = rule.get("label")
         identifier = rule.get("identifier")
         if not pattern or not label or not identifier:
             continue
-        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
-        logger.info(f"Testing pattern for '{label}': {p_pattern}")
-        p_matches = re.findall(p_pattern, text, re.DOTALL)
-        unique_p_values = set(p_matches)
-        count = len(unique_p_values)
-        if count > 0:
-            special_counts[label] = count
-            logger.info(f"Special prefix '{label}' - found: {count} (matched identifiers: {unique_p_values})")
+
+        basic_pattern = pattern
+        matches = re.findall(basic_pattern, text, re.DOTALL)
+        count = len(set(matches))
+
+        if count == 1:
+            special_counts[label] = 1
+            logger.info(f"Special prefix '{label}' - found exactly once, no identifier needed (matched: {matches})")
+        elif count > 1:
+            p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
+            logger.info(f"Testing pattern for '{label}' with identifier: {p_pattern}")
+            p_matches = re.findall(p_pattern, text, re.DOTALL)
+            unique_p_values = set(p_matches)
+            identifier_count = len(unique_p_values)
+            if identifier_count > 0:
+                special_counts[label] = identifier_count
+                logger.info(f"Special prefix '{label}' - found: {identifier_count} (matched identifiers: {unique_p_values})")
+            else:
+                logger.info(f"Special prefix '{label}' - no identifier matches for pattern: {p_pattern}")
         else:
-            logger.info(f"Special prefix '{label}' - no identifier matches for pattern: {p_pattern}")
+            logger.info(f"Special prefix '{label}' - no matches for pattern: {basic_pattern}")
+
     return special_counts
 
 def find_prefix_and_percentage(text, config):
