@@ -1,0 +1,15 @@
+[Unit]
+Description=Python App in venv with Printer Access
+After=network.target
+
+[Service]
+Type=simple
+User=camp
+ExecStart=/home/camp/start.sh
+WorkingDirectory=/home/camp
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
