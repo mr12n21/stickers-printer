@@ -81,26 +81,22 @@ def count_special_prefixes(text, special_config):
             logger.warning(f"Invalid rule: pattern={pattern}, label={label}, identifier={identifier}")
             continue
 
-        # Krok 1: Hledáme identifikátory pro daný prefix
-        logger.info(f"Testing pattern for '{label}' with identifier: Ubytovací služby.*?(?:\b{identifier})(\d+)")
+        logger.info(rf"Testing pattern for '{label}' with identifier: Ubytovací služby.*?(?:\b{identifier})(\d+)")
         p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
         p_matches = re.findall(p_pattern, text, re.DOTALL)
         unique_p_values = set(p_matches)
         identifier_count = len(unique_p_values)
 
         if identifier_count > 0:
-            # Pokud najdeme identifikátory, použijeme jejich počet
             special_counts[label] = identifier_count
             logger.info(f"Special prefix '{label}' - found: {identifier_count} (matched identifiers: {unique_p_values})")
         else:
-            # Krok 2: Pokud nejsou identifikátory, hledáme pattern
             logger.info(f"Testing basic pattern for '{label}': {pattern}")
             matches = re.findall(pattern, text, re.DOTALL)
             unique_matches = set(matches)
             count = len(unique_matches)
 
             if count == 1:
-                # Pokud je pattern nalezen pouze jednou, přidáme prefix
                 special_counts[label] = 1
                 logger.info(f"Special prefix '{label}' - found exactly once, no identifier needed (matched: {unique_matches})")
             elif count > 1:
@@ -140,7 +136,7 @@ def find_prefix_and_percentage(text, config):
 def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
     special_output = []
-    for label, count in sorted(special_counts.items()):  # Seřadíme pro konzistentní výstup
+    for label, count in sorted(special_counts.items()):
         if count > 1:
             special_output.append(f"{count}{label}")
         else:
@@ -152,7 +148,7 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
         logger.info("No special prefixes found.")
 
     standard_output = []
-    for label in sorted(standard_counts.keys()):  # Seřadíme pro konzistentní výstup
+    for label in sorted(standard_counts.keys()):
         standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
