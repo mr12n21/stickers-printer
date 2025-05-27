@@ -31,19 +31,20 @@ def extract_text_from_xls(xls_path):
         raise FileNotFoundError(f"XLS file not found: {xls_path}")
     try:
         df = pd.read_excel(xls_path, engine='openpyxl')
-        text = df.to_string(index=False)
+        text = df.to_string(index=False, na_rep='')
         logger.info(f"Full extracted text from {xls_path}:\n{text}")
         debug_path = os.path.join(os.path.dirname(xls_path), "extracted_text.txt")
         with open(debug_path, 'w', encoding='utf-8') as f:
             f.write(text)
         logger.info(f"Extracted text saved to: {debug_path}")
-        return text if text else ""
+        return text if text.strip() else ""
     except Exception as e:
         logger.error(f"Error reading XLS file {xls_path}: {e}")
         return ""
 
 def contains_blacklisted_text(text, blacklist):
     if text is None or blacklist is None:
+        logger.info("No text or blacklist provided, skipping blacklist check.")
         return False
     result = any(phrase in text for phrase in blacklist)
     logger.info(f"Blacklist check: {result} (blacklist: {blacklist})")
@@ -51,6 +52,7 @@ def contains_blacklisted_text(text, blacklist):
 
 def extract_data_from_text(text, default_year):
     if text is None:
+        logger.warning("No text provided for data extraction, returning defaults.")
         return "?", "?", "?", str(default_year)
     date_pattern = r"termín:\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})\s*-\s*(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})"
     match = re.search(date_pattern, text)
@@ -68,6 +70,7 @@ def extract_data_from_text(text, default_year):
 def count_special_prefixes(text, special_config):
     special_counts = {}
     if text is None or special_config is None:
+        logger.warning("No text or special_config provided, returning empty special counts.")
         return special_counts
     
     for rule in special_config:
@@ -75,40 +78,51 @@ def count_special_prefixes(text, special_config):
         label = rule.get("label")
         identifier = rule.get("identifier")
         if not pattern or not label or not identifier:
+            logger.warning(f"Invalid rule: pattern={pattern}, label={label}, identifier={identifier}")
             continue
 
-        basic_pattern = pattern
-        matches = re.findall(basic_pattern, text, re.DOTALL)
-        count = len(set(matches))
+        # Krok 1: Hledáme identifikátory pro daný prefix
+        logger.info(f"Testing pattern for '{label}' with identifier: Ubytovací služby.*?(?:\b{identifier})(\d+)")
+        p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
+        p_matches = re.findall(p_pattern, text, re.DOTALL)
+        unique_p_values = set(p_matches)
+        identifier_count = len(unique_p_values)
 
-        if count == 1:
-            special_counts[label] = 1
-            logger.info(f"Special prefix '{label}' - found exactly once, no identifier needed (matched: {matches})")
-        elif count > 1:
-            p_pattern = rf"Ubytovací služby.*?(?:\b{identifier})(\d+)"
-            logger.info(f"Testing pattern for '{label}' with identifier: {p_pattern}")
-            p_matches = re.findall(p_pattern, text, re.DOTALL)
-            unique_p_values = set(p_matches)
-            identifier_count = len(unique_p_values)
-            if identifier_count > 0:
-                special_counts[label] = identifier_count
-                logger.info(f"Special prefix '{label}' - found: {identifier_count} (matched identifiers: {unique_p_values})")
-            else:
-                logger.info(f"Special prefix '{label}' - no identifier matches for pattern: {p_pattern}")
+        if identifier_count > 0:
+            # Pokud najdeme identifikátory, použijeme jejich počet
+            special_counts[label] = identifier_count
+            logger.info(f"Special prefix '{label}' - found: {identifier_count} (matched identifiers: {unique_p_values})")
         else:
-            logger.info(f"Special prefix '{label}' - no matches for pattern: {basic_pattern}")
+            # Krok 2: Pokud nejsou identifikátory, hledáme pattern
+            logger.info(f"Testing basic pattern for '{label}': {pattern}")
+            matches = re.findall(pattern, text, re.DOTALL)
+            unique_matches = set(matches)
+            count = len(unique_matches)
 
+            if count == 1:
+                # Pokud je pattern nalezen pouze jednou, přidáme prefix
+                special_counts[label] = 1
+                logger.info(f"Special prefix '{label}' - found exactly once, no identifier needed (matched: {unique_matches})")
+            elif count > 1:
+                logger.warning(f"Special prefix '{label}' - multiple matches ({count}) but no identifiers found: {unique_matches}")
+            else:
+                logger.info(f"Special prefix '{label}' - no matches for pattern: {pattern}")
+
+    logger.info(f"Final special counts: {special_counts}")
     return special_counts
 
 def find_prefix_and_percentage(text, config):
     prefixes_found = {}
     electric_found = False
     if text is None or config is None:
+        logger.warning("No text or config provided, returning empty prefixes.")
         return prefixes_found, electric_found
+    
     for rule in config.get("prefixes", []):
         pattern = rule.get("pattern")
         label = rule.get("label")
         if not pattern or not label:
+            logger.warning(f"Invalid rule: pattern={pattern}, label={label}")
             continue
         if re.search(pattern, text, re.DOTALL):
             if label == "E":
@@ -116,15 +130,17 @@ def find_prefix_and_percentage(text, config):
                 logger.info("Detected electricity: E")
             else:
                 prefixes_found[label] = 1
-                logger.info(f"Detected prefix '{label}' (count ignored)")
+                logger.info(f"Detected standard prefix '{label}' (pattern: {pattern})")
         else:
-            logger.info(f"Prefix '{label}' not found for pattern: {pattern}")
+            logger.info(f"Standard prefix '{label}' not found for pattern: {pattern}")
+    
+    logger.info(f"Standard prefixes found: {prefixes_found}, electric_found: {electric_found}")
     return prefixes_found, electric_found
 
 def process_prefixes_and_output(special_counts, standard_counts, electric_found):
     final_output = []
     special_output = []
-    for label, count in special_counts.items():
+    for label, count in sorted(special_counts.items()):  # Seřadíme pro konzistentní výstup
         if count > 1:
             special_output.append(f"{count}{label}")
         else:
@@ -132,20 +148,27 @@ def process_prefixes_and_output(special_counts, standard_counts, electric_found)
     special_str = "".join(special_output)
     if special_str:
         logger.info(f"Special prefixes: {special_str}")
+    else:
+        logger.info("No special prefixes found.")
 
     standard_output = []
-    for label in standard_counts.keys():
+    for label in sorted(standard_counts.keys()):  # Seřadíme pro konzistentní výstup
         standard_output.append(label)
     standard_str = "".join(standard_output)
     if standard_str:
         logger.info(f"Standard prefixes: {standard_str}")
+    else:
+        logger.info("No standard prefixes found.")
 
     electric_str = "E" if electric_found else ""
     if electric_found:
         logger.info("Detected electricity: E")
 
     final_output = special_str + standard_str + electric_str
-    logger.info(f"Final prefix output: {final_output}")
+    if not final_output:
+        logger.warning("Final output is empty!")
+    else:
+        logger.info(f"Final prefix output: {final_output}")
 
     total_prints = 0
     for part in re.findall(r'(\d*[A-Za-z])', final_output):
@@ -169,18 +192,17 @@ def create_combined_label(variable_symbol, from_date, to_date, year, output_path
         font_year = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 240)
         font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 110)
         font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-
     except IOError:
         logger.warning("Failed to load DejaVuSans-Bold font, using default font.")
 
     year_short = year[-2:]
     draw.text((280, 0), f"{year_short}", fill="#bfbfbf", font=font_year)
     draw.text((10, 10), f"ID: {variable_symbol}", fill="black", font=font_medium)
-    to_date_formatted = ".".join(to_date.split(".")[:2]) + "."
+    to_date_formatted = ".".join(to_date.split(".")[:2]) + "." if to_date != "?" else "?"
     draw.text((10, 30), f"{to_date_formatted}", fill="black", font=font_large)
     if electric_found:
         draw.text((340, 30), "E", fill="black", font=font_large)
-    draw.text((10, 120), final_output, fill="black", font=font_large)
+    draw.text((10, 120), final_output or "Není prefix", fill="black", font=font_large)
     img.save(output_path)
     logger.info(f"Label saved: {output_path}")
 
@@ -241,6 +263,8 @@ def process_xls(xls_path, config, output_dir, test_mode):
 
         if total_prints > 0:
             print_label_with_image(output_file, test_mode, total_prints)
+        else:
+            logger.warning("No prints will be made (total_prints is 0).")
 
         return output_file
 

@@ -1,12 +1,8 @@
-                                                              Hotelový účet č. 720253156 - Broz Petr    Unnamed: 1 Unnamed: 2 Unnamed: 3 Unnamed: 4 Unnamed: 5         Unnamed: 6 Unnamed: 7
-                                                                                               Název Datum čerpání      Pokoj      Počet      % DPH Cena s DPH Celková cena s DPH       Měna
-           Ubytovací služby (1x Velký stan (nad 10 m2), termín: 27. 5. 2025 - 30. 5. 2025, hostů: 1)           NaN        VS1          3         12        260                780        CZK
-                                                                        Poplatek z pobytu (hostů: 1)           NaN        VS1          3          0         30                 90        CZK
-Ubytovací služby (1x Střední stan (nad 4m2 a do 10 m2), termín: 27. 5. 2025 - 30. 5. 2025, hostů: 1)           NaN       SS29          3         12        220                660        CZK
-                                                                        Poplatek z pobytu (hostů: 1)           NaN       SS29          3          0         30                 90        CZK
-Ubytovací služby (1x Střední stan (nad 4m2 a do 10 m2), termín: 27. 5. 2025 - 30. 5. 2025, hostů: 1)           NaN       SS30          3         12        220                660        CZK
-                                                                        Poplatek z pobytu (hostů: 1)           NaN       SS30          3          0         30                 90        CZK
-                                                                                                 NaN           NaN        NaN        NaN        NaN        NaN                NaN        NaN
-                                                                                       Částka celkem           NaN        NaN        NaN        NaN        NaN               2370        CZK
-                                                                                    Zaplaceno celkem           NaN        NaN        NaN        NaN        NaN                  0        CZK
-                                                                                   Zbývá k zaplacení           NaN        NaN        NaN        NaN        NaN               2370        CZK
+                                                                                                          Hotelový účet č. 720253167 - Axel Frotscher    Unnamed: 1 Unnamed: 2 Unnamed: 3 Unnamed: 4         Unnamed: 5 Unnamed: 6
+                                                                                                                                                Název Datum čerpání      Počet      % DPH Cena s DPH Celková cena s DPH       Měna
+Ubytovací služby (1x Stání pro karavan včetně 1 osobního auta/ obytný přívěs / mikrobus / nákladní auto, termín: 28. 5. 2025 - 31. 5. 2025, hostů: 4)                        1         12       1830               1830        CZK
+                                                                                                                         Poplatek z pobytu (hostů: 2)                        3          0         60                180        CZK
+                                                                                                                                                                                                                                  
+                                                                                                                                        Částka celkem                                                              2010        CZK
+                                                                                                                                     Zaplaceno celkem                                                                 0        CZK
+                                                                                                                                    Zbývá k zaplacení                                                              2010        CZK
