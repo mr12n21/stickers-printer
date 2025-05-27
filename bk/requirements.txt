@@ -1,0 +1,8 @@
+reportlab
+brother_ql
+Pillow
+pandas
+openpyxl
+pyyaml
+watchdog
+flask
