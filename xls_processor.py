@@ -266,4 +266,4 @@ def process_xls(xls_path, config, output_dir, test_mode):
 
     except Exception as e:
         logger.error(f"Error processing file {xls_path}: {e}")
-        return None
+        return None        return None
